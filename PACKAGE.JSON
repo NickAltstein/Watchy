@@ -1,0 +1,20 @@
+{
+  "name": "watch-engine-sentinel",
+  "version": "0.1.0",
+  "description": "Secure local client for WhatsApp monitoring",
+  "main": "sentinel-core.js",
+  "scripts": {
+    "start": "node sentinel-core.js",
+    "dev": "nodemon sentinel-core.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "puppeteer-extra": "^3.3.6",
+    "puppeteer-extra-plugin-stealth": "^2.11.2",
+    "ws": "^8.14.2",
+    "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
