@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TERMINAL // WATCH ENGINE v11</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        [x-cloak] { display: none !important; }
+        body { background-color: #000; color: #E5E7EB; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .signal-row { border-bottom: 1px solid #141414; transition: all 0.2s ease; }
+        .signal-row:hover { background-color: #0A0A0A; }
+        .tier-urgent { border-left: 3px solid #EF4444; }
+        .tier-push { border-left: 3px solid #F59E0B; }
+        .tier-normal { border-left: 3px solid #3B82F6; }
+        
+        /* New: Signal Flash for New Entries */
+        @keyframes flash { 
+            0% { background-color: #1E3A8A; }
+            100% { background-color: transparent; }
+        }
+        .new-entry { animation: flash 2s ease-out; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" x-data="terminal()">
+
+    <div class="absolute top-12 right-6 z-[100] space-y-2 w-64">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div x-show="toast.show" 
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="translate-x-full opacity-0"
+                 x-transition:enter-end="translate-x-0 opacity-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 :class="toast.type === 'success' ? 'bg-green-900/80 border-green-500' : 'bg-red-900/80 border-red-500'"
+                 class="p-3 border text-[10px] uppercase tracking-widest font-bold shadow-2xl backdrop-blur-md">
+                <span x-text="toast.message"></span>
+            </div>
+        </template>
+    </div>
+
+    <header class="h-10 border-b border-[#1A1A1A] px-4 flex items-center justify-between bg-[#050505] text-[10px] tracking-widest uppercase font-medium text-gray-400">
+        <div class="flex items-center space-x-6">
+            <div class="flex items-center space-x-2">
+                <div class="w-2 h-2 rounded-full" :class="connected ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]' : 'bg-red-600'"></div>
+                <span x-text="connected ? 'System.Ready' : 'System.Offline'"></span>
+            </div>
+            <div class="flex items-center space-x-4 border-l border-[#1A1A1A] pl-6">
+                <span>Refs_Tracked: <span class="text-white mono" x-text="metrics.cache_size">0</span></span>
+                <span>Signal_Count: <span class="text-white mono" x-text="trades.length">0</span></span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-6">
+            <span class="mono text-gray-500" x-text="currentTime"></span>
+            <button @click="isAdminOpen = !isAdminOpen" 
+                    class="px-3 py-1 border border-gray-700 hover:border-blue-500 hover:text-blue-400 transition-all">
+                Config_Console
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col overflow-hidden relative">
+        
+        <div x-show="isAdminOpen" @click.away="isAdminOpen = false"
+             class="absolute top-0 left-0 w-full z-50 bg-[#0D0D0D] border-b border-blue-900/40 p-10 shadow-2xl" x-cloak>
+            <div class="max-w-5xl mx-auto">
+                <div class="flex items-center space-x-2 mb-6 text-blue-500">
+                    <span class="text-[10px] font-bold tracking-[0.4em] uppercase">Security Authenticated Access</span>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <input type="text" x-model="target.ref" placeholder="REFERENCE_ID" class="bg-black border border-[#1A1A1A] p-4 text-xs mono text-white focus:border-blue-600">
+                    <input type="number" x-model="target.price" placeholder="MARKET_VALUE_USD" class="bg-black border border-[#1A1A1A] p-4 text-xs mono text-white focus:border-blue-600">
+                    <input type="password" x-model="admin_secret" placeholder="AUTH_TOKEN" class="bg-black border border-[#1A1A1A] p-4 text-xs text-white focus:border-blue-600">
+                    <button @click="updateTarget()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-widest transition-all">Commit_Update</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-12 px-6 py-4 bg-[#080808] border-b border-[#1A1A1A] text-[9px] uppercase tracking-[0.2em] font-bold text-gray-500">
+            <div class="col-span-3">Asset_Reference</div>
+            <div class="col-span-2 text-right">Liquidity_Ask</div>
+            <div class="col-span-2 text-right">Edge_Score</div>
+            <div class="col-span-3 px-8">Origin_Metadata</div>
+            <div class="col-span-2 text-right">Execution_Time</div>
+        </div>
+
+        <div class="flex-1 overflow-y-auto scroll-smooth bg-black">
+            <template x-for="(trade, index) in trades" :key="trade.id">
+                <div class="grid grid-cols-12 px-6 py-5 signal-row items-center" 
+                     :class="['tier-' + trade.alert_tier.toLowerCase(), trade.isNew ? 'new-entry' : '']">
+                    
+                    <div class="col-span-3 flex items-center space-x-4">
+                        <span class="mono text-sm font-bold text-white tracking-tight" x-text="trade.ref_number"></span>
+                        <template x-if="trade.drift">
+                            <span class="text-[8px] bg-blue-600/20 text-blue-400 border border-blue-600/30 px-2 py-0.5 font-bold uppercase">Drift</span>
+                        </template>
+                    </div>
+
+                    <div class="col-span-2 text-right">
+                        <span class="mono text-sm font-bold text-green-400" x-text="'$' + trade.price_usd.toLocaleString()"></span>
+                    </div>
+
+                    <div class="col-span-2 text-right">
+                        <span class="mono text-xs font-bold" 
+                              :class="trade.deal_score > 0 ? 'text-blue-400' : 'text-red-500'"
+                              x-text="(trade.deal_score > 0 ? '+' : '') + trade.deal_score"></span>
+                    </div>
+
+                    <div class="col-span-3 px-8 truncate">
+                        <span class="text-[10px] text-gray-300 uppercase block font-medium tracking-wide" x-text="trade.brand"></span>
+                        <span class="text-[9px] text-gray-600 mono block mt-0.5" x-text="trade.sender_id + ' // ' + trade.group_name"></span>
+                    </div>
+
+                    <div class="col-span-2 text-right">
+                        <span class="mono text-[10px] text-gray-400" x-text="formatTime(trade.timestamp)"></span>
+                    </div>
+                </div>
+            </template>
+
+            <template x-if="trades.length === 0">
+                <div class="h-full flex flex-col items-center justify-center space-y-4 opacity-30">
+                    <div class="w-16 h-[1px] bg-blue-500"></div>
+                    <span class="text-[10px] uppercase tracking-[0.5em] text-blue-400">Monitoring_Data_Streams</span>
+                </div>
+            </template>
+        </div>
+    </main>
+
+    <script>
+        function terminal() {
+            return {
+                connected: false,
+                isAdminOpen: false,
+                admin_secret: '',
+                target: { ref: '', price: '' },
+                metrics: { cache_size: 0 },
+                trades: [],
+                toasts: [],
+                currentTime: '',
+                
+                async init() {
+                    setInterval(() => this.currentTime = new Date().toISOString().replace('T', ' ').substring(0, 19), 1000);
+                    await this.checkHealth();
+                    await this.fetchRecent();
+                    setInterval(() => this.checkHealth(), 10000);
+                    setInterval(() => this.fetchRecent(), 5000);
+                },
+
+                addToast(message, type = 'success') {
+                    const id = Date.now();
+                    this.toasts.push({ id, message, type, show: true });
+                    setTimeout(() => {
+                        const toast = this.toasts.find(t => t.id === id);
+                        if(toast) toast.show = false;
+                    }, 4000);
+                },
+
+                async checkHealth() {
+                    try {
+                        const res = await fetch('/health');
+                        const data = await res.json();
+                        this.metrics.cache_size = data.cache_size;
+                        this.connected = true;
+                    } catch { this.connected = false; }
+                },
+
+                async updateTarget() {
+                    if(!this.target.ref || this.target.price <= 0 || !this.admin_secret) {
+                        this.addToast("Invalid Parameters", "error");
+                        return;
+                    }
+                    try {
+                        const res = await fetch('/admin/update-target', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                ref_number: this.target.ref,
+                                market_price: parseInt(this.target.price),
+                                admin_secret: this.admin_secret
+                            })
+                        });
+                        if(res.ok) {
+                            this.addToast("Market Price Updated");
+                            this.target = { ref: '', price: '' };
+                            this.isAdminOpen = false;
+                        } else {
+                            this.addToast("Authorization Refused", "error");
+                        }
+                    } catch { this.addToast("Network Error", "error"); }
+                },
+
+                async fetchRecent() {
+                    try {
+                        const res = await fetch('/recent-trades');
+                        if(!res.ok) return;
+                        const newData = await res.json();
+                        
+                        // Incremental Update Logic
+                        const existingIds = new Set(this.trades.map(t => t.id));
+                        const freshTrades = newData.filter(t => !existingIds.has(t.id))
+                                                   .map(t => ({ ...t, isNew: true }));
+                        
+                        if(freshTrades.length > 0) {
+                            // Prepend new trades and keep the list lean
+                            this.trades = [...freshTrades, ...this.trades].slice(0, 50);
+                            // Clear 'isNew' status after animation
+                            setTimeout(() => {
+                                this.trades = this.trades.map(t => ({ ...t, isNew: false }));
+                            }, 3000);
+                        }
+                    } catch (e) { console.error("Stream disrupted"); }
+                },
+
+                formatTime(ts) {
+                    return new Date(ts).toLocaleTimeString('en-GB', { hour12: false });
+                }
+            }
+        }
+    </script>
+</body>
+</html>
