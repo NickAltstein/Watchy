@@ -1,12 +1,10 @@
-# ref_manager.py
 import aiosqlite
 import logging
-from typing import Dict
 
-logger = logging.getLogger("watch-engine.refs")
+logger = logging.getLogger("watch-engine.ref_manager")
 
 async def init_ref_table(db_path: str):
-    """Creates the target_prices table if it doesn't exist."""
+    """Initializes the target_prices table for dynamic market tracking."""
     async with aiosqlite.connect(db_path) as db:
         await db.execute("""
             CREATE TABLE IF NOT EXISTS target_prices (
@@ -16,10 +14,9 @@ async def init_ref_table(db_path: str):
             )
         """)
         await db.commit()
-    logger.info("Target prices table ensured.")
 
 async def update_target_price_in_db(db_path: str, ref: str, price: int):
-    """Inserts or updates a target price for a specific reference."""
+    """Upserts a target price into the database."""
     async with aiosqlite.connect(db_path) as db:
         await db.execute("""
             INSERT INTO target_prices (ref_number, market_price, updated_at)
@@ -29,10 +26,9 @@ async def update_target_price_in_db(db_path: str, ref: str, price: int):
                 updated_at = CURRENT_TIMESTAMP
         """, (ref.upper().replace(" ", ""), price))
         await db.commit()
-    logger.info(f"Updated target price for {ref}: {price}")
 
-async def get_all_targets_from_db(db_path: str) -> Dict[str, int]:
-    """Fetches all targets as a dictionary."""
+async def get_all_targets_from_db(db_path: str) -> dict:
+    """Returns a dictionary of all target prices for the memory cache."""
     async with aiosqlite.connect(db_path) as db:
         async with db.execute("SELECT ref_number, market_price FROM target_prices") as cursor:
             rows = await cursor.fetchall()
