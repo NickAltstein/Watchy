@@ -1,264 +1,427 @@
-# WhatsApp Luxury Watch Scraper System
+# Watch Trading Engine 🚀⌚
 
-Production-ready system for automatically scraping, parsing, and analyzing luxury watch listings from WhatsApp groups using Baileys and OpenAI GPT-4o Vision.
+> **Production-ready AI-powered luxury watch trading system**  
+> Automatically scrape, analyze, and score watch listings from WhatsApp groups using GPT-4o Vision and advanced deal detection algorithms.
 
-## System Architecture
+[![CI/CD Pipeline](https://github.com/NickAiNYC/Watchy/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/NickAiNYC/Watchy/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Node.js 18+](https://img.shields.io/badge/node-18+-green.svg)](https://nodejs.org/)
+
+---
+
+## 📋 Table of Contents
+
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Dashboard](#dashboard)
+- [Notifications](#notifications)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [Security](#security)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
+
+---
+
+## 🎯 Overview
+
+Watch Trading Engine is an enterprise-grade system for monitoring luxury watch marketplaces via WhatsApp groups. It combines:
+
+- **AI Vision Analysis** - GPT-4o processes text + images
+- **Smart Deal Detection** - Algorithmic scoring based on market data
+- **Multi-Channel Alerts** - Discord, Slack, Telegram, Email
+- **Real-Time Dashboard** - Live trade monitoring interface
+- **Production Infrastructure** - Docker, CI/CD, monitoring
+
+Perfect for watch dealers, collectors, and trading desks looking to gain competitive advantage through automation.
+
+---
+
+## 🏗️ Architecture
 
 ```
-WhatsApp Groups
-       ↓
-┌──────────────────┐
-│  Node.js Server  │  ← Baileys WebSocket connection
-│   (server.js)    │  ← Downloads images, extracts text
-└────────┬─────────┘
-         │ HTTP POST
-         ↓
-┌──────────────────┐
-│  Python FastAPI  │  ← OpenAI GPT-4o Vision
-│    (main.py)     │  ← Deduplication logic
-│                  │  ← SQLite storage
-└──────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    WhatsApp Groups                          │
+│              (Luxury Watch Trading Channels)                │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+        ┌────────────────────────────────┐
+        │   Node.js WhatsApp Service     │
+        │        (server.js)             │
+        │                                │
+        │  • Baileys WebSocket           │
+        │  • Message capture             │
+        │  • Image download              │
+        │  • Content extraction          │
+        └────────────┬───────────────────┘
+                     │ HTTP POST
+                     ↓
+        ┌────────────────────────────────┐
+        │   Python FastAPI Backend       │
+        │         (main.py)              │
+        │                                │
+        │  • GPT-4o Vision AI            │
+        │  • Deal score calculation      │
+        │  • Deduplication logic         │
+        │  • SQLite database             │
+        │  • Cache management            │
+        └────────────┬───────────────────┘
+                     │
+                     ├──────────┐
+                     ↓          ↓
+        ┌──────────────────┐  ┌──────────────────┐
+        │  Dashboard UI    │  │  Notification     │
+        │  (dash.html)     │  │  Service          │
+        │                  │  │                   │
+        │  • Real-time     │  │  • Discord        │
+        │    updates       │  │  • Slack          │
+        │  • Filtering     │  │  • Telegram       │
+        │  • Analytics     │  │  • Email          │
+        └──────────────────┘  └──────────────────┘
 ```
 
-## Features
+### Technology Stack
 
-✅ **Real-time WhatsApp monitoring** with Baileys (native protocol, not browser automation)  
-✅ **AI Vision analysis** using GPT-4o for text + images  
-✅ **Automatic deduplication** - ignores duplicate listings within 4 hours  
-✅ **Deal scoring** - compares prices against reference targets  
-✅ **SQLite storage** - saves all WTS listings  
-✅ **Multi-group support** - filter specific groups or monitor all  
-✅ **Robust reconnection** - handles WhatsApp disconnections automatically  
-✅ **Watch terminology expert** - understands NIB, B+P, stickered, etc.
+**Backend:**
+- Python 3.10+ with FastAPI
+- SQLite with WAL mode
+- AsyncIO for concurrency
+- Connection pooling
 
-## Installation
+**Frontend:**
+- Alpine.js for reactivity
+- Tailwind CSS for styling
+- Server-Sent Events for updates
 
-### Prerequisites
+**Infrastructure:**
+- Docker & Docker Compose
+- GitHub Actions CI/CD
+- Nginx reverse proxy
+- Let's Encrypt SSL
 
-- Node.js 18+ 
-- Python 3.10+
-- OpenAI API key with GPT-4o access
+---
 
-### Step 1: Install Node.js Dependencies
+## ✨ Key Features
+
+### Core Functionality
+
+✅ **Real-time WhatsApp Monitoring**  
+Native protocol integration with Baileys (no browser automation required)
+
+✅ **AI Vision Analysis**  
+GPT-4o processes both text and images for accurate listing extraction
+
+✅ **Intelligent Deal Scoring**  
+Algorithmic scoring system compares prices against market data
+
+✅ **Smart Deduplication**  
+Prevents duplicate alerts using temporal and hash-based detection
+
+✅ **Multi-Channel Notifications**  
+Instant alerts via Discord, Slack, Telegram, and Email
+
+✅ **Live Dashboard**  
+Real-time web interface with automatic updates and filtering
+
+### Advanced Features
+
+🔐 **Enterprise Security**  
+- Admin secret authentication
+- Rate limiting on all endpoints
+- Input validation and sanitization
+- CORS configuration
+
+📊 **Analytics & Reporting**  
+- Historical price tracking
+- Reference statistics
+- Deal performance metrics
+- Data export (CSV, JSON)
+
+🚀 **Production Ready**  
+- Docker containerization
+- CI/CD pipeline with GitHub Actions
+- Health checks and monitoring
+- Database connection pooling
+- Automated backups
+
+🔔 **Flexible Notifications**  
+- Configurable alert thresholds
+- Multiple channel support
+- Rich formatting (embeds, cards)
+- Deal tier classification (URGENT, PUSH, NORMAL)
+
+---
+
+## 🚀 Quick Start
+
+Get up and running in under 5 minutes:
 
 ```bash
-npm install
-```
+# 1. Clone repository
+git clone https://github.com/NickAiNYC/Watchy.git
+cd Watchy
 
-### Step 2: Install Python Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### Step 3: Configure Environment
-
-```bash
+# 2. Configure environment
 cp .env.template .env
+# Edit .env with your API keys
+
+# 3. Start with Docker (recommended)
+docker-compose up -d
+
+# 4. Access dashboard
+open http://localhost/dash.html
+
+# 5. First-time WhatsApp setup
+# Scan QR code in terminal to link your WhatsApp account
 ```
 
-Edit `.env` and set:
-- `OPENAI_API_KEY` - Your OpenAI API key
-- `WATCHED_GROUPS` - Comma-separated list of group names (optional, leave empty to monitor all)
+That's it! The system will now monitor your WhatsApp groups and display deals on the dashboard.
 
-### Step 4: Customize Target Prices
+---
 
-Edit `target_prices.json` to add your reference prices for deal scoring. Format:
+## 💻 Usage
 
-```json
-{
-  "126610LN": 12500,
-  "5711/1A-010": 85000
-}
-```
+### Running the System
 
-## Usage
-
-### Start the Python API (Terminal 1)
+#### Option 1: Docker Compose (Production)
 
 ```bash
-uvicorn main:app --reload
+# Start all services
+docker-compose up -d
+
+# View real-time logs
+docker-compose logs -f
+
+# Stop services
+docker-compose down
 ```
 
-You should see:
-```
-INFO:     Uvicorn running on http://127.0.0.1:8000
-✅ Database initialized
+#### Option 2: Manual (Development)
+
+**Terminal 1 - Python API:**
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Start the WhatsApp Listener (Terminal 2)
-
+**Terminal 2 - WhatsApp Service:**
 ```bash
 npm start
+# or for development with auto-reload:
+npm run dev
 ```
 
-**First time setup:**
-1. A QR code will appear in your terminal
-2. Open WhatsApp on your phone
-3. Go to: Settings → Linked Devices → Link a Device
-4. Scan the QR code
-5. Once connected, it will say: `✅ Connected to WhatsApp successfully`
-
-**Subsequent runs:** The session is saved in `auth_info_baileys/` folder, no QR needed.
-
-## How It Works
-
-### Message Flow
-
-1. **WhatsApp receives message** → Baileys captures it
-2. **Text extraction** → Pulls message text + image caption
-3. **Image download** → Converts to Base64 if image present
-4. **HTTP POST to Python** → Sends data to `/parse-watch` endpoint
-5. **AI analysis** → GPT-4o Vision parses the content
-6. **Deduplication check** → Queries SQLite for recent duplicates
-7. **Deal scoring** → Compares price to `target_prices.json`
-8. **Storage** → Saves WTS listings to database
-
-### AI Parsing Logic
-
-The AI understands:
-- **Watch shorthand**: NIB, B+P, stickered, papers only, naked
-- **Condition scales**: 1-10 or descriptive (unworn, mint, etc.)
-- **Reference numbers**: Rolex 6-digit, Patek dash format, etc.
-- **Price formats**: "17.5k" → 17500, "17500++" → 17500
-- **Sentiment**: WTS (Want to Sell) vs WTB (Want to Buy)
-
-### Deduplication
-
-Listings are considered duplicates if:
-- Same `ref_number` AND same `price_usd`
-- Within last 4 hours (configurable via `DEDUPLICATION_HOURS`)
-
-### Deal Scoring
-
-Formula:
-```
-discount = (target_price - actual_price) / target_price * 100
-deal_score = 50 + (discount * 2.5)
-
-Score = 100: 20%+ below market (HOT DEAL!)
-Score = 50:  At market price
-Score = 0:   20%+ above market
-```
-
-Scores 80+ are flagged as hot deals in the logs.
-
-## API Endpoints
-
-### POST `/parse-watch`
-
-Parses a watch listing from text and/or image.
-
-**Request:**
-```json
-{
-  "text": "WTS Rolex Sub 126610LN. 2023. Unworn. B+P. $12,000 firm.",
-  "imageBase64": "base64_encoded_image_data",
-  "groupName": "Watch Dealers NYC",
-  "senderId": "1234567890@s.whatsapp.net",
-  "messageId": "msg_12345",
-  "timestamp": 1705089600
-}
-```
-
-**Response (valid listing):**
-```json
-{
-  "status": "parsed",
-  "brand": "Rolex",
-  "model": "Submariner",
-  "ref_number": "126610LN",
-  "year": "2023",
-  "condition": "Unworn",
-  "condition_score": 10,
-  "inclusions": "Box and Papers",
-  "is_full_set": true,
-  "price_usd": 12000,
-  "sentiment": "WTS",
-  "deal_score": 54,
-  "raw_text": "WTS Rolex Sub 126610LN...",
-  "has_image": true
-}
-```
-
-**Response (ignored message):**
-```json
-{
-  "status": "ignore",
-  "reason": "Not a watch listing"
-}
-```
-
-**Response (duplicate):**
-```json
-{
-  "status": "duplicate",
-  "message": "Listing already seen in last 4 hours"
-}
-```
-
-### GET `/stats`
-
-Get database statistics.
-
-**Response:**
-```json
-{
-  "total_listings": 247,
-  "by_sentiment": {
-    "WTS": 198,
-    "WTB": 49
-  },
-  "top_brands": [
-    {"brand": "Rolex", "count": 156},
-    {"brand": "Patek Philippe", "count": 34}
-  ]
-}
-```
-
-### GET `/health`
-
-Health check endpoint.
-
-## Database Schema
-
-```sql
-CREATE TABLE listings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    message_id TEXT UNIQUE,
-    brand TEXT,
-    model TEXT,
-    ref_number TEXT,
-    price_usd INTEGER,
-    sentiment TEXT,
-    group_name TEXT,
-    sender_id TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    raw_json TEXT
-);
-```
-
-Access the database:
+**Terminal 3 - Full Stack:**
 ```bash
-sqlite3 watch_listings.db
+npm run dev:full
+# This runs both services concurrently
 ```
 
-Query examples:
-```sql
--- All Rolex listings today
-SELECT * FROM listings 
-WHERE brand = 'Rolex' 
-AND date(created_at) = date('now');
+### First-Time WhatsApp Setup
 
--- Best deals (lowest prices for ref)
-SELECT ref_number, MIN(price_usd) as best_price, COUNT(*) as count
-FROM listings
-WHERE sentiment = 'WTS'
-GROUP BY ref_number
-ORDER BY count DESC;
+1. Start the WhatsApp service
+2. A QR code will appear in your terminal
+3. Open WhatsApp on your phone
+4. Go to: **Settings → Linked Devices → Link a Device**
+5. Scan the QR code
+6. Wait for confirmation: `✅ Connected to WhatsApp successfully`
+
+**Subsequent runs:** Session is saved in `auth_info_baileys/` - no QR needed.
+
+### Accessing the Dashboard
+
+Open your browser to:
+- Local: `http://localhost:8000/dash.html`
+- Docker: `http://localhost/dash.html`
+
+The dashboard provides:
+- Real-time trade listings
+- Deal score visualization
+- Filtering by tier/sentiment
+- Reference statistics
+- Admin console access
+
+---
+
+## 📚 API Documentation
+
+### Interactive Documentation
+
+Once running, access interactive API docs:
+- **Swagger UI:** http://localhost:8000/docs
+- **ReDoc:** http://localhost:8000/redoc
+
+### Quick API Examples
+
+**Check system health:**
+```bash
+curl http://localhost:8000/health
 ```
 
-## Troubleshooting
+**Get recent trades:**
+```bash
+curl http://localhost:8000/recent-trades?limit=20
+```
+
+**Get reference statistics:**
+```bash
+curl http://localhost:8000/stats/ref/126610LN?days=30
+```
+
+**Export data (requires admin secret):**
+```bash
+curl "http://localhost:8000/export/trades?format=csv&admin_secret=YOUR_SECRET" -o export.csv
+```
+
+For complete API documentation, see [API.md](./API.md)
+
+---
+---
+
+## 🔔 Notifications
+
+The system supports multiple notification channels for hot deal alerts.
+
+### Setup Instructions
+
+#### Discord
+
+1. Create a webhook in your Discord server
+2. Copy the webhook URL
+3. Add to `.env`: `DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...`
+
+Notifications include:
+- Colored embeds based on tier
+- Deal details and calculations
+- Source group information
+
+#### Slack
+
+1. Create an incoming webhook in your Slack workspace
+2. Copy the webhook URL
+3. Add to `.env`: `SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...`
+
+Notifications use Slack blocks for rich formatting.
+
+#### Telegram
+
+1. Create a bot via @BotFather
+2. Get your chat ID (use @userinfobot)
+3. Add to `.env`:
+   ```
+   TELEGRAM_BOT_TOKEN=your-token
+   TELEGRAM_CHAT_ID=your-chat-id
+   ```
+
+#### Email
+
+Configure SMTP settings in `.env`:
+```bash
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+ALERT_EMAIL_TO=recipient@example.com
+```
+
+For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833).
+
+### Alert Tiers
+
+- **URGENT** (Score ≥ 350): 35%+ below market - immediate action
+- **PUSH** (Score ≥ 200): 20%+ below market - strong opportunity
+- **NORMAL** (Score < 200): Tracked but not urgent
+
+---
+
+## 🚢 Deployment
+
+### Quick Deploy Options
+
+**Heroku (1-Click):**
+```bash
+heroku create watch-trading
+heroku config:set OPENAI_API_KEY=sk-...
+git push heroku main
+```
+
+**AWS ECS (via Docker):**
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete AWS setup
+
+**Google Cloud Run:**
+```bash
+gcloud builds submit --tag gcr.io/PROJECT_ID/watch-trading
+gcloud run deploy --image gcr.io/PROJECT_ID/watch-trading
+```
+
+**DigitalOcean App Platform:**
+- Connect your GitHub repository
+- Configure environment variables
+- Deploy with one click
+
+For detailed deployment guides, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### Production Checklist
+
+- [ ] Set strong `ADMIN_SECRET` (32+ characters)
+- [ ] Configure HTTPS/SSL certificate
+- [ ] Set `DEBUG=false` in production
+- [ ] Configure CORS for your domain
+- [ ] Set up automated backups
+- [ ] Configure monitoring and logging
+- [ ] Enable rate limiting
+- [ ] Set up firewall rules
+- [ ] Configure notification channels
+- [ ] Test disaster recovery procedures
+
+---
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+Quick start for contributors:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and add tests
+4. Run linting: `npm run lint`
+5. Commit with conventional commits: `git commit -m "feat: add amazing feature"`
+6. Push and create a Pull Request
+
+---
+
+## 🔒 Security
+
+### Security Best Practices
+
+1. **Never commit secrets** - Use `.env` for all sensitive data
+2. **Rotate API keys regularly** - Set up key rotation schedule
+3. **Use strong admin secrets** - Minimum 32 characters, cryptographically random
+4. **Enable HTTPS** - Always use SSL/TLS in production
+5. **Restrict API access** - Use firewall rules and rate limiting
+6. **Monitor for anomalies** - Set up alerts for unusual activity
+7. **Keep dependencies updated** - Run `npm audit` and `pip audit` regularly
+8. **Backup database** - Automated daily backups with encryption
+
+### Reporting Security Issues
+
+Please report security vulnerabilities to: [security@example.com](mailto:security@example.com)
+
+Do not create public GitHub issues for security vulnerabilities.
+
+---
+
+## 🔧 Troubleshooting
 
 ### "Connection closed" errors
 
@@ -384,3 +547,66 @@ MIT
 ## Support
 
 For issues, questions, or feature requests, please open a GitHub issue.
+
+---
+
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**WhatsApp Connection Issues**
+
+```bash
+# Problem: "Connection closed" errors
+# Solution: Delete session and re-authenticate
+rm -rf auth_info_baileys/
+npm start  # Scan QR code again
+```
+
+**Database Locked Error**
+
+```bash
+# Problem: Database locked
+# Solution: Check WAL mode and close other connections
+sqlite3 trade_desk.db "PRAGMA journal_mode;"
+# Should return: wal
+```
+
+**Python API Not Running**
+
+```bash
+# Problem: Node.js can't connect to API
+# Solution: Start FastAPI service
+uvicorn main:app --host 0.0.0.0 --port 8000
+
+# Check if running:
+curl http://localhost:8000/health
+```
+
+**Out of Memory**
+
+```bash
+# Problem: Container crashes with OOM
+# Solution: Increase Docker memory limit
+docker-compose down
+# Edit docker-compose.yml, add resources limits
+docker-compose up -d
+```
+
+### Getting Help
+
+- 📖 **Documentation:** [Full docs](./API.md)
+- 🐛 **Bug Reports:** [GitHub Issues](https://github.com/NickAiNYC/Watchy/issues)
+- 💬 **Discussions:** [GitHub Discussions](https://github.com/NickAiNYC/Watchy/discussions)
+
+---
+
+<div align="center">
+
+**Made with ⌚ by watch enthusiasts, for watch enthusiasts**
+
+⭐ Star us on GitHub — it helps!
+
+[Report Bug](https://github.com/NickAiNYC/Watchy/issues) · [Request Feature](https://github.com/NickAiNYC/Watchy/issues) · [Documentation](./API.md)
+
+</div>
