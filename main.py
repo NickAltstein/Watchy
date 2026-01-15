@@ -23,6 +23,7 @@ from slowapi.errors import RateLimitExceeded
 
 # --- Custom Module Import ---
 from ref_manager import init_ref_table, update_target_price_in_db, get_all_targets_from_db
+from notifications import send_deal_notification
 
 # --- Custom Exceptions ---
 class WatchEngineError(Exception):
@@ -530,6 +531,22 @@ Do not add commentary."""
             
             logger.info(f"Processed listing: {ref} ${watch.price_usd} (Score: {score}, Tier: {tier})")
             
+            # Send notifications for significant deals
+            if tier in ["URGENT", "PUSH"]:
+                try:
+                    await send_deal_notification(
+                        ref_number=ref,
+                        price=watch.price_usd,
+                        market_price=market_price,
+                        deal_score=score,
+                        alert_tier=tier,
+                        group_name=msg.groupName,
+                        sentiment=watch.sentiment,
+                        raw_text=msg.text[:500] if msg.text else None
+                    )
+                except Exception as e:
+                    logger.error(f"Failed to send notification: {e}")
+            
             return {
                 "status": "success",
                 "ref": ref,
@@ -630,6 +647,42 @@ async def metrics(admin_secret: Optional[str] = None):
         "timestamp": datetime.now().isoformat()
     }
 
+@app.get("/recent-trades", tags=["analytics"])
+async def get_recent_trades(limit: int = 50, offset: int = 0):
+    """Get recent trade listings for dashboard"""
+    async with (await db_manager.acquire()) as conn:
+        async with conn.execute("""
+            SELECT 
+                id, brand, model, ref_number, price_usd,
+                deal_score, alert_tier, sentiment, group_name,
+                sender_id, timestamp,
+                CASE WHEN timestamp > datetime('now', '-5 minutes') THEN 1 ELSE 0 END as drift
+            FROM trades
+            ORDER BY timestamp DESC
+            LIMIT ? OFFSET ?
+        """, (limit, offset)) as cursor:
+            rows = await cursor.fetchall()
+            
+            trades = [
+                {
+                    "id": row[0],
+                    "brand": row[1],
+                    "model": row[2],
+                    "ref_number": row[3],
+                    "price_usd": row[4],
+                    "deal_score": row[5],
+                    "alert_tier": row[6],
+                    "sentiment": row[7],
+                    "group_name": row[8],
+                    "sender_id": row[9][:16] + "...",  # Truncate for privacy
+                    "timestamp": row[10],
+                    "drift": bool(row[11])
+                }
+                for row in rows
+            ]
+    
+    return trades
+
 @app.get("/stats/ref/{ref_number}", tags=["analytics"])
 async def get_ref_stats(ref_number: str, days: int = 7):
     """Get statistics for a specific reference number"""
@@ -672,6 +725,78 @@ async def get_ref_stats(ref_number: str, days: int = 7):
         },
         "recent_listings": recent
     }
+
+@app.get("/export/trades", tags=["export"])
+@limiter.limit("5/minute")
+async def export_trades(
+    request: Request,
+    format: str = "json",
+    days: int = 7,
+    admin_secret: Optional[str] = None
+):
+    """Export trade data in various formats (requires authentication)"""
+    if admin_secret != settings.ADMIN_SECRET:
+        raise HTTPException(status_code=403, detail="Invalid admin secret")
+    
+    async with (await db_manager.acquire()) as conn:
+        async with conn.execute("""
+            SELECT 
+                id, brand, model, ref_number, price_usd,
+                deal_score, alert_tier, sentiment, group_name,
+                timestamp, raw_text
+            FROM trades
+            WHERE timestamp > datetime('now', ?)
+            ORDER BY timestamp DESC
+        """, (f"-{days} days",)) as cursor:
+            rows = await cursor.fetchall()
+    
+    if format == "json":
+        trades = [
+            {
+                "id": row[0],
+                "brand": row[1],
+                "model": row[2],
+                "ref_number": row[3],
+                "price_usd": row[4],
+                "deal_score": row[5],
+                "alert_tier": row[6],
+                "sentiment": row[7],
+                "group_name": row[8],
+                "timestamp": row[9],
+                "raw_text": row[10]
+            }
+            for row in rows
+        ]
+        return JSONResponse(content={"trades": trades, "count": len(trades)})
+    
+    elif format == "csv":
+        import csv
+        import io
+        
+        output = io.StringIO()
+        writer = csv.writer(output)
+        
+        # Write header
+        writer.writerow([
+            "ID", "Brand", "Model", "Reference", "Price USD",
+            "Deal Score", "Alert Tier", "Sentiment", "Group",
+            "Timestamp", "Raw Text"
+        ])
+        
+        # Write data
+        for row in rows:
+            writer.writerow(row)
+        
+        return Response(
+            content=output.getvalue(),
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=trades_export_{datetime.now().strftime('%Y%m%d')}.csv"
+            }
+        )
+    
+    else:
+        raise HTTPException(status_code=400, detail="Invalid format. Use 'json' or 'csv'")
 
 if __name__ == "__main__":
     import uvicorn
