@@ -69,8 +69,9 @@ class Settings(BaseSettings):
     DB_POOL_MINSIZE: int = 1
     DB_POOL_MAXSIZE: int = 10
     
-    # CORS
-    CORS_ORIGINS: List[str] = ["*"]
+    # CORS - IMPORTANT: Configure specific origins in production!
+    # Default uses wildcard for development - MUST change for production
+    CORS_ORIGINS: List[str] = ["*"]  # Change to specific domains in production
     
     # Rate Limits
     PARSE_RATE_LIMIT: str = "20/minute"

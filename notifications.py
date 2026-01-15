@@ -6,6 +6,8 @@ Supports multiple notification channels: Discord, Slack, Telegram, Email
 import os
 import logging
 import asyncio
+import ssl
+import socket
 from typing import Dict, Optional, List
 from datetime import datetime
 import aiohttp
@@ -421,10 +423,29 @@ Watch Trading Engine
     def _send_email_sync(self, msg: MIMEMultipart):
         """Synchronous email sending (called in executor)"""
         try:
-            with smtplib.SMTP(self.smtp_host, self.smtp_port) as server:
-                server.starttls()
-                server.login(self.smtp_user, self.smtp_password)
+            # Use SMTP with TLS for security
+            with smtplib.SMTP(self.smtp_host, self.smtp_port, timeout=30) as server:
+                # Enable TLS encryption
+                context = ssl.create_default_context()
+                server.starttls(context=context)
+                
+                # Authenticate
+                try:
+                    server.login(self.smtp_user, self.smtp_password)
+                except smtplib.SMTPAuthenticationError as e:
+                    logger.error(f"SMTP authentication failed: {e}")
+                    raise Exception(f"Email authentication failed: Invalid credentials")
+                except smtplib.SMTPException as e:
+                    logger.error(f"SMTP error during login: {e}")
+                    raise
+                
+                # Send message
                 server.send_message(msg)
+                logger.info("Email sent successfully")
+                
+        except socket.timeout:
+            logger.error("Email send timeout - SMTP server not responding")
+            raise Exception("Email send timeout")
         except Exception as e:
             logger.error(f"Failed to send email: {e}")
             raise

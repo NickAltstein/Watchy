@@ -155,7 +155,12 @@ jobs:
       - name: Test Docker image
         run: |
           docker build -t watch-trading-engine:test .
-          docker run --rm -e OPENAI_API_KEY=test -e DEEPSEEK_API_KEY=test -e ADMIN_SECRET=test1234567890123456 watch-trading-engine:test python -c "import main; print('Image OK')"
+          # Use environment variables for test credentials
+          docker run --rm \
+            -e OPENAI_API_KEY="${{ secrets.TEST_OPENAI_KEY || 'sk-test' }}" \
+            -e DEEPSEEK_API_KEY="${{ secrets.TEST_DEEPSEEK_KEY || 'sk-test' }}" \
+            -e ADMIN_SECRET="${{ secrets.TEST_ADMIN_SECRET || 'test1234567890123456' }}" \
+            watch-trading-engine:test python -c "import main; print('Image OK')"
 
   # Job 5: Integration Tests (if configured)
   integration:
