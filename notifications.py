@@ -27,9 +27,14 @@ class NotificationService:
         self.telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
         self.telegram_chat_id = os.getenv('TELEGRAM_CHAT_ID')
         
-        # Email settings
+        # Email settings with safe port conversion
         self.smtp_host = os.getenv('SMTP_HOST')
-        self.smtp_port = int(os.getenv('SMTP_PORT', 587))
+        try:
+            self.smtp_port = int(os.getenv('SMTP_PORT', '587'))
+        except (ValueError, TypeError):
+            self.smtp_port = 587
+            logger.warning("Invalid SMTP_PORT, using default: 587")
+        
         self.smtp_user = os.getenv('SMTP_USER')
         self.smtp_password = os.getenv('SMTP_PASSWORD')
         self.alert_email_to = os.getenv('ALERT_EMAIL_TO')

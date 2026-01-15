@@ -6,6 +6,7 @@ import logging
 import re
 import hashlib
 import threading
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Any
 from contextlib import asynccontextmanager
@@ -361,7 +362,8 @@ async def watch_engine_exception_handler(request: Request, exc: WatchEngineError
 @app.post("/admin/update-target", tags=["admin"])
 async def update_target(payload: TargetUpdatePayload):
     """Update target price for a reference number (admin only)"""
-    if payload.admin_secret != settings.ADMIN_SECRET:
+    # Use constant-time comparison to prevent timing attacks
+    if not secrets.compare_digest(payload.admin_secret, settings.ADMIN_SECRET):
         raise HTTPException(
             status_code=403,
             detail="Invalid admin secret"
@@ -593,8 +595,8 @@ async def health():
 @limiter.limit(settings.METRICS_RATE_LIMIT)  # Added rate limiting
 async def metrics(admin_secret: Optional[str] = None):
     """Metrics endpoint with optional authentication"""
-    # Optional authentication for sensitive metrics
-    if admin_secret != settings.ADMIN_SECRET:
+    # Optional authentication for sensitive metrics - use constant-time comparison
+    if not admin_secret or not secrets.compare_digest(admin_secret, settings.ADMIN_SECRET):
         # Return basic metrics only for unauthenticated requests
         return {
             "status": "basic_metrics_only",
@@ -736,7 +738,8 @@ async def export_trades(
     admin_secret: Optional[str] = None
 ):
     """Export trade data in various formats (requires authentication)"""
-    if admin_secret != settings.ADMIN_SECRET:
+    # Use constant-time comparison to prevent timing attacks
+    if not admin_secret or not secrets.compare_digest(admin_secret, settings.ADMIN_SECRET):
         raise HTTPException(status_code=403, detail="Invalid admin secret")
     
     async with (await db_manager.acquire()) as conn:

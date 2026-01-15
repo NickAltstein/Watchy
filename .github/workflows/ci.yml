@@ -153,14 +153,20 @@ jobs:
           cache-to: type=gha,mode=max
       
       - name: Test Docker image
+        # Skip test if secrets not available
+        if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
         run: |
           docker build -t watch-trading-engine:test .
-          # Use environment variables for test credentials
-          docker run --rm \
-            -e OPENAI_API_KEY="${{ secrets.TEST_OPENAI_KEY || 'sk-test' }}" \
-            -e DEEPSEEK_API_KEY="${{ secrets.TEST_DEEPSEEK_KEY || 'sk-test' }}" \
-            -e ADMIN_SECRET="${{ secrets.TEST_ADMIN_SECRET || 'test1234567890123456' }}" \
-            watch-trading-engine:test python -c "import main; print('Image OK')"
+          # Only run tests if we have proper secrets
+          if [ -n "${{ secrets.TEST_OPENAI_KEY }}" ]; then
+            docker run --rm \
+              -e OPENAI_API_KEY="${{ secrets.TEST_OPENAI_KEY }}" \
+              -e DEEPSEEK_API_KEY="${{ secrets.TEST_DEEPSEEK_KEY }}" \
+              -e ADMIN_SECRET="${{ secrets.TEST_ADMIN_SECRET }}" \
+              watch-trading-engine:test python -c "import main; print('Image OK')"
+          else
+            echo "Skipping runtime test - secrets not available"
+          fi
 
   # Job 5: Integration Tests (if configured)
   integration:
