@@ -3,31 +3,321 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TERMINAL // WATCH ENGINE v11</title>
+    <title>Watch Trading Engine | Enterprise Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         [x-cloak] { display: none !important; }
-        body { background-color: #000; color: #E5E7EB; font-family: 'Inter', sans-serif; -webkit-font-smoothing: antialiased; }
-        .mono { font-family: 'JetBrains Mono', monospace; }
-        .signal-row { border-bottom: 1px solid #141414; transition: all 0.2s ease; }
-        .signal-row:hover { background-color: #0A0A0A; }
-        .tier-urgent { border-left: 3px solid #EF4444; }
-        .tier-push { border-left: 3px solid #F59E0B; }
-        .tier-normal { border-left: 3px solid #3B82F6; }
         
-        /* New: Signal Flash for New Entries */
-        @keyframes flash { 
-            0% { background-color: #1E3A8A; }
-            100% { background-color: transparent; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+            color: #e2e8f0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow: hidden;
         }
-        .new-entry { animation: flash 2s ease-out; }
+        
+        /* Premium Glass Morphism */
+        .glass {
+            background: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        }
+        
+        .glass-card {
+            background: rgba(30, 41, 59, 0.5);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .glass-card:hover {
+            background: rgba(30, 41, 59, 0.7);
+            border-color: rgba(59, 130, 246, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        /* Animated Background */
+        .animated-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            overflow: hidden;
+        }
+        
+        .gradient-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.3;
+            animation: float 20s ease-in-out infinite;
+        }
+        
+        .orb-1 {
+            width: 400px;
+            height: 400px;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, transparent 70%);
+            top: -100px;
+            left: -100px;
+            animation-delay: 0s;
+        }
+        
+        .orb-2 {
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.4) 0%, transparent 70%);
+            bottom: -50px;
+            right: -50px;
+            animation-delay: 7s;
+        }
+        
+        .orb-3 {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, rgba(16, 185, 129, 0.3) 0%, transparent 70%);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation-delay: 14s;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(30px, -30px) scale(1.1); }
+            66% { transform: translate(-30px, 30px) scale(0.9); }
+        }
+        
+        /* Luxury Typography */
+        .title-text {
+            font-family: 'Space Grotesk', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .mono { font-family: 'SF Mono', 'Monaco', 'Courier New', monospace; }
+        
+        /* Premium Trade Row */
+        .trade-row {
+            border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+        }
+        
+        .trade-row:hover {
+            background: rgba(59, 130, 246, 0.05);
+            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateX(4px);
+        }
+        
+        .trade-row::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 3px;
+            background: linear-gradient(180deg, transparent, currentColor, transparent);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .trade-row:hover::before { opacity: 1; }
+        
+        .tier-urgent::before { color: #ef4444; }
+        .tier-push::before { color: #f59e0b; }
+        .tier-normal::before { color: #3b82f6; }
+        
+        /* Pulsing Animation for New Entries */
+        @keyframes pulse-glow {
+            0%, 100% {
+                box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+                background: rgba(59, 130, 246, 0.05);
+            }
+            50% {
+                box-shadow: 0 0 40px rgba(59, 130, 246, 0.5);
+                background: rgba(59, 130, 246, 0.1);
+            }
+        }
+        
+        .new-entry {
+            animation: pulse-glow 2s ease-in-out;
+        }
+        
+        /* Status Indicator with Glow */
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            position: relative;
+        }
+        
+        .status-indicator::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            border-radius: 50%;
+            background: inherit;
+            filter: blur(4px);
+            opacity: 0.6;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.2); }
+        }
+        
+        /* Premium Buttons */
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+            transition: all 0.3s;
+        }
+        
+        .btn-primary:hover {
+            box-shadow: 0 6px 25px rgba(59, 130, 246, 0.6);
+            transform: translateY(-2px);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.5);
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: rgba(59, 130, 246, 0.5);
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(59, 130, 246, 0.7);
+        }
+        
+        /* Toast Notifications */
+        .toast {
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        /* Stats Card */
+        .stat-card {
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
+        
+        /* Price Display */
+        .price-positive { color: #10b981; }
+        .price-negative { color: #ef4444; }
+        
+        /* Loading Shimmer */
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+        
+        .shimmer {
+            background: linear-gradient(90deg, 
+                rgba(148, 163, 184, 0.05) 0%,
+                rgba(148, 163, 184, 0.15) 50%,
+                rgba(148, 163, 184, 0.05) 100%
+            );
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        /* Badge Styles */
+        .badge {
+            font-size: 0.65rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            text-transform: uppercase;
+        }
+        
+        .badge-urgent {
+            background: rgba(239, 68, 68, 0.15);
+            color: #fca5a5;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        .badge-push {
+            background: rgba(245, 158, 11, 0.15);
+            color: #fcd34d;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+        
+        .badge-normal {
+            background: rgba(59, 130, 246, 0.15);
+            color: #93c5fd;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+        
+        /* Focus States */
+        input:focus, select:focus {
+            outline: none;
+            border-color: rgba(59, 130, 246, 0.5);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Chart Container */
+        .chart-container {
+            position: relative;
+            height: 200px;
+        }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden" x-data="terminal()">
+<body class="h-screen overflow-hidden" x-data="tradingDashboard()">
+    
+    <!-- Animated Background -->
+    <div class="animated-bg">
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="gradient-orb orb-3"></div>
+    </div>
 
-    <div class="absolute top-12 right-6 z-[100] space-y-2 w-64">
+    <!-- Toast Notifications -->
+    <div class="fixed top-6 right-6 z-[100] space-y-3 w-96">
         <template x-for="toast in toasts" :key="toast.id">
             <div x-show="toast.show" 
                  x-transition:enter="transition ease-out duration-300"
@@ -35,107 +325,326 @@
                  x-transition:enter-end="translate-x-0 opacity-100"
                  x-transition:leave="transition ease-in duration-200"
                  x-transition:leave-start="opacity-100"
-                 x-transition:leave-end="opacity-0"
-                 :class="toast.type === 'success' ? 'bg-green-900/80 border-green-500' : 'bg-red-900/80 border-red-500'"
-                 class="p-3 border text-[10px] uppercase tracking-widest font-bold shadow-2xl backdrop-blur-md">
-                <span x-text="toast.message"></span>
+                 x-transition:leave-end="translate-x-full opacity-0"
+                 :class="toast.type === 'success' ? 'bg-gradient-to-r from-emerald-500/20 to-green-500/20 border-emerald-500/50' : 'bg-gradient-to-r from-red-500/20 to-rose-500/20 border-red-500/50'"
+                 class="toast px-5 py-4 rounded-xl border shadow-2xl">
+                <div class="flex items-center space-x-3">
+                    <div class="flex-shrink-0">
+                        <svg x-show="toast.type === 'success'" class="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                        </svg>
+                        <svg x-show="toast.type === 'error'" class="w-5 h-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold text-white" x-text="toast.message"></p>
+                    </div>
+                </div>
             </div>
         </template>
     </div>
 
-    <header class="h-10 border-b border-[#1A1A1A] px-4 flex items-center justify-between bg-[#050505] text-[10px] tracking-widest uppercase font-medium text-gray-400">
-        <div class="flex items-center space-x-6">
-            <div class="flex items-center space-x-2">
-                <div class="w-2 h-2 rounded-full" :class="connected ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]' : 'bg-red-600'"></div>
-                <span x-text="connected ? 'System.Ready' : 'System.Offline'"></span>
-            </div>
-            <div class="flex items-center space-x-4 border-l border-[#1A1A1A] pl-6">
-                <span>Refs_Tracked: <span class="text-white mono" x-text="metrics.cache_size">0</span></span>
-                <span>Signal_Count: <span class="text-white mono" x-text="trades.length">0</span></span>
-            </div>
-        </div>
-        <div class="flex items-center space-x-6">
-            <span class="mono text-gray-500" x-text="currentTime"></span>
-            <a href="/price-chart.html" 
-                class="px-3 py-1 border border-gray-700 hover:border-green-500 hover:text-green-400 transition-all">
-                Price_Charts
-            </a>
-            <button @click="isAdminOpen = !isAdminOpen" 
-                    class="px-3 py-1 border border-gray-700 hover:border-blue-500 hover:text-blue-400 transition-all">
-                Config_Console
-            </button>
-        </div>
-    </header>
-
-    <main class="flex-1 flex flex-col overflow-hidden relative">
+    <!-- Main Container -->
+    <div class="relative z-10 h-screen flex flex-col">
         
-        <div x-show="isAdminOpen" @click.away="isAdminOpen = false"
-             class="absolute top-0 left-0 w-full z-50 bg-[#0D0D0D] border-b border-blue-900/40 p-10 shadow-2xl" x-cloak>
-            <div class="max-w-5xl mx-auto">
-                <div class="flex items-center space-x-2 mb-6 text-blue-500">
-                    <span class="text-[10px] font-bold tracking-[0.4em] uppercase">Security Authenticated Access</span>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <input type="text" x-model="target.ref" placeholder="REFERENCE_ID" class="bg-black border border-[#1A1A1A] p-4 text-xs mono text-white focus:border-blue-600">
-                    <input type="number" x-model="target.price" placeholder="MARKET_VALUE_USD" class="bg-black border border-[#1A1A1A] p-4 text-xs mono text-white focus:border-blue-600">
-                    <input type="password" x-model="admin_secret" placeholder="AUTH_TOKEN" class="bg-black border border-[#1A1A1A] p-4 text-xs text-white focus:border-blue-600">
-                    <button @click="updateTarget()" class="bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold uppercase tracking-widest transition-all">Commit_Update</button>
+        <!-- Premium Header -->
+        <header class="glass border-b border-white/10">
+            <div class="px-8 py-5">
+                <div class="flex items-center justify-between">
+                    <!-- Brand -->
+                    <div class="flex items-center space-x-8">
+                        <div>
+                            <h1 class="title-text text-2xl mb-1">Watch Trading Engine</h1>
+                            <p class="text-xs text-slate-400 font-medium">Enterprise Deal Intelligence Platform</p>
+                        </div>
+                        
+                        <!-- Status Indicator -->
+                        <div class="flex items-center space-x-3 px-4 py-2 rounded-lg bg-slate-800/50">
+                            <div class="status-indicator" 
+                                 :class="connected ? 'bg-emerald-500' : 'bg-red-500'"></div>
+                            <span class="text-sm font-semibold" 
+                                  :class="connected ? 'text-emerald-400' : 'text-red-400'"
+                                  x-text="connected ? 'System Online' : 'System Offline'"></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Right Section -->
+                    <div class="flex items-center space-x-6">
+                        <!-- Stats -->
+                        <div class="flex items-center space-x-6 text-sm">
+                            <div class="flex items-center space-x-2">
+                                <span class="text-slate-400">References</span>
+                                <span class="font-bold text-white mono text-lg" x-text="metrics.cache_size">0</span>
+                            </div>
+                            <div class="h-6 w-px bg-slate-700"></div>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-slate-400">Active Deals</span>
+                                <span class="font-bold text-white mono text-lg" x-text="trades.length">0</span>
+                            </div>
+                        </div>
+                        
+                        <div class="h-8 w-px bg-slate-700"></div>
+                        
+                        <!-- Time -->
+                        <div class="text-right">
+                            <div class="text-xs text-slate-400 mb-1">System Time</div>
+                            <div class="mono text-sm font-semibold text-white" x-text="currentTime"></div>
+                        </div>
+                        
+                        <!-- Admin Button -->
+                        <button @click="isAdminOpen = !isAdminOpen" 
+                                class="btn-primary px-6 py-2.5 rounded-lg font-semibold text-sm text-white transition-all">
+                            ⚙️ Admin Console
+                        </button>
+                    </div>
                 </div>
             </div>
-        </div>
+        </header>
 
-        <div class="grid grid-cols-12 px-6 py-4 bg-[#080808] border-b border-[#1A1A1A] text-[9px] uppercase tracking-[0.2em] font-bold text-gray-500">
-            <div class="col-span-3">Asset_Reference</div>
-            <div class="col-span-2 text-right">Liquidity_Ask</div>
-            <div class="col-span-2 text-right">Edge_Score</div>
-            <div class="col-span-3 px-8">Origin_Metadata</div>
-            <div class="col-span-2 text-right">Execution_Time</div>
-        </div>
-
-        <div class="flex-1 overflow-y-auto scroll-smooth bg-black">
-            <template x-for="(trade, index) in trades" :key="trade.id">
-                <div class="grid grid-cols-12 px-6 py-5 signal-row items-center" 
-                     :class="['tier-' + trade.alert_tier.toLowerCase(), trade.isNew ? 'new-entry' : '']">
+        <!-- Main Content Area -->
+        <div class="flex-1 overflow-hidden flex">
+            
+            <!-- Sidebar with Stats -->
+            <aside class="w-80 glass border-r border-white/10 overflow-y-auto">
+                <div class="p-6 space-y-6">
                     
-                    <div class="col-span-3 flex items-center space-x-4">
-                        <span class="mono text-sm font-bold text-white tracking-tight" x-text="trade.ref_number"></span>
-                        <template x-if="trade.drift">
-                            <span class="text-[8px] bg-blue-600/20 text-blue-400 border border-blue-600/30 px-2 py-0.5 font-bold uppercase">Drift</span>
-                        </template>
+                    <!-- Quick Stats -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-wider">Performance Metrics</h3>
+                        <div class="space-y-3">
+                            <div class="stat-card p-4 rounded-xl">
+                                <div class="text-xs text-slate-400 mb-1">Hot Deals Today</div>
+                                <div class="text-2xl font-bold text-emerald-400" x-text="trades.filter(t => t.alert_tier === 'URGENT' || t.alert_tier === 'PUSH').length">0</div>
+                            </div>
+                            
+                            <div class="stat-card p-4 rounded-xl">
+                                <div class="text-xs text-slate-400 mb-1">Average Score</div>
+                                <div class="text-2xl font-bold text-blue-400" 
+                                     x-text="trades.length > 0 ? Math.round(trades.reduce((sum, t) => sum + t.deal_score, 0) / trades.length) : 0">0</div>
+                            </div>
+                            
+                            <div class="stat-card p-4 rounded-xl">
+                                <div class="text-xs text-slate-400 mb-1">Total Volume</div>
+                                <div class="text-2xl font-bold text-purple-400 mono">
+                                    $<span x-text="trades.length > 0 ? (trades.reduce((sum, t) => sum + t.price_usd, 0) / 1000).toFixed(0) : 0">0</span>K
+                                </div>
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="col-span-2 text-right">
-                        <span class="mono text-sm font-bold text-green-400" x-text="'$' + trade.price_usd.toLocaleString()"></span>
+                    
+                    <!-- Filters -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-wider">Filters</h3>
+                        <div class="space-y-2">
+                            <button @click="filterTier = 'all'" 
+                                    :class="filterTier === 'all' ? 'bg-blue-600 text-white' : 'glass-card text-slate-300'"
+                                    class="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left">
+                                🔍 All Deals (<span x-text="trades.length">0</span>)
+                            </button>
+                            <button @click="filterTier = 'URGENT'" 
+                                    :class="filterTier === 'URGENT' ? 'bg-red-600 text-white' : 'glass-card text-slate-300'"
+                                    class="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left">
+                                🔥 Urgent (<span x-text="trades.filter(t => t.alert_tier === 'URGENT').length">0</span>)
+                            </button>
+                            <button @click="filterTier = 'PUSH'" 
+                                    :class="filterTier === 'PUSH' ? 'bg-amber-600 text-white' : 'glass-card text-slate-300'"
+                                    class="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left">
+                                ⚡ Push (<span x-text="trades.filter(t => t.alert_tier === 'PUSH').length">0</span>)
+                            </button>
+                            <button @click="filterTier = 'NORMAL'" 
+                                    :class="filterTier === 'NORMAL' ? 'bg-blue-600 text-white' : 'glass-card text-slate-300'"
+                                    class="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left">
+                                📊 Normal (<span x-text="trades.filter(t => t.alert_tier === 'NORMAL').length">0</span>)
+                            </button>
+                        </div>
                     </div>
-
-                    <div class="col-span-2 text-right">
-                        <span class="mono text-xs font-bold" 
-                              :class="trade.deal_score > 0 ? 'text-blue-400' : 'text-red-500'"
-                              x-text="(trade.deal_score > 0 ? '+' : '') + trade.deal_score"></span>
+                    
+                    <!-- Top References -->
+                    <div>
+                        <h3 class="text-sm font-semibold text-slate-400 mb-4 uppercase tracking-wider">Top References</h3>
+                        <div class="space-y-2">
+                            <template x-for="(ref, index) in topRefs.slice(0, 5)" :key="ref.ref_number">
+                                <div class="glass-card p-3 rounded-lg">
+                                    <div class="flex items-center justify-between">
+                                        <div>
+                                            <div class="text-sm font-semibold text-white mono" x-text="ref.ref_number"></div>
+                                            <div class="text-xs text-slate-400" x-text="ref.count + ' listings'"></div>
+                                        </div>
+                                        <div class="text-lg font-bold text-blue-400" x-text="'#' + (index + 1)"></div>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
+                    
+                </div>
+            </aside>
 
-                    <div class="col-span-3 px-8 truncate">
-                        <span class="text-[10px] text-gray-300 uppercase block font-medium tracking-wide" x-text="trade.brand"></span>
-                        <span class="text-[9px] text-gray-600 mono block mt-0.5" x-text="trade.sender_id + ' // ' + trade.group_name"></span>
-                    </div>
-
-                    <div class="col-span-2 text-right">
-                        <span class="mono text-[10px] text-gray-400" x-text="formatTime(trade.timestamp)"></span>
+            <!-- Main Trading Feed -->
+            <main class="flex-1 overflow-hidden flex flex-col">
+                
+                <!-- Table Header -->
+                <div class="glass border-b border-white/10 px-8 py-4">
+                    <div class="grid grid-cols-12 gap-6 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        <div class="col-span-2">Reference</div>
+                        <div class="col-span-2">Brand & Model</div>
+                        <div class="col-span-2 text-right">Price</div>
+                        <div class="col-span-2 text-right">Score</div>
+                        <div class="col-span-2">Alert Tier</div>
+                        <div class="col-span-2 text-right">Time</div>
                     </div>
                 </div>
-            </template>
-
-            <template x-if="trades.length === 0">
-                <div class="h-full flex flex-col items-center justify-center space-y-4 opacity-30">
-                    <div class="w-16 h-[1px] bg-blue-500"></div>
-                    <span class="text-[10px] uppercase tracking-[0.5em] text-blue-400">Monitoring_Data_Streams</span>
+                
+                <!-- Trading Feed -->
+                <div class="flex-1 overflow-y-auto" style="scroll-behavior: smooth;">
+                    <template x-for="trade in filteredTrades" :key="trade.id">
+                        <div class="trade-row px-8 py-5"
+                             :class="['tier-' + trade.alert_tier.toLowerCase(), trade.isNew ? 'new-entry' : '']">
+                            <div class="grid grid-cols-12 gap-6 items-center">
+                                
+                                <!-- Reference -->
+                                <div class="col-span-2">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="mono font-bold text-white text-base" x-text="trade.ref_number"></span>
+                                        <template x-if="trade.drift">
+                                            <span class="badge badge-normal">📉 Drift</span>
+                                        </template>
+                                    </div>
+                                </div>
+                                
+                                <!-- Brand & Model -->
+                                <div class="col-span-2">
+                                    <div class="text-sm font-semibold text-slate-200" x-text="trade.brand"></div>
+                                    <div class="text-xs text-slate-500 truncate" x-text="trade.model || 'N/A'"></div>
+                                </div>
+                                
+                                <!-- Price -->
+                                <div class="col-span-2 text-right">
+                                    <div class="text-lg font-bold text-emerald-400 mono">
+                                        $<span x-text="trade.price_usd.toLocaleString()"></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Score -->
+                                <div class="col-span-2 text-right">
+                                    <div class="inline-flex items-center px-3 py-1.5 rounded-lg"
+                                         :class="trade.deal_score > 0 ? 'bg-blue-500/20 text-blue-400' : 'bg-red-500/20 text-red-400'">
+                                        <span class="mono font-bold text-lg" 
+                                              x-text="(trade.deal_score > 0 ? '+' : '') + trade.deal_score"></span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Alert Tier -->
+                                <div class="col-span-2">
+                                    <span class="badge"
+                                          :class="{
+                                              'badge-urgent': trade.alert_tier === 'URGENT',
+                                              'badge-push': trade.alert_tier === 'PUSH',
+                                              'badge-normal': trade.alert_tier === 'NORMAL'
+                                          }"
+                                          x-text="trade.alert_tier"></span>
+                                </div>
+                                
+                                <!-- Time -->
+                                <div class="col-span-2 text-right">
+                                    <div class="text-sm text-slate-400 mono" x-text="formatTime(trade.timestamp)"></div>
+                                </div>
+                                
+                            </div>
+                        </div>
+                    </template>
+                    
+                    <!-- Empty State -->
+                    <template x-if="filteredTrades.length === 0">
+                        <div class="h-full flex flex-col items-center justify-center py-20">
+                            <div class="shimmer w-24 h-24 rounded-full mb-6 flex items-center justify-center">
+                                <svg class="w-12 h-12 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                                </svg>
+                            </div>
+                            <h3 class="text-xl font-semibold text-slate-300 mb-2">Monitoring Market Activity</h3>
+                            <p class="text-sm text-slate-500">Waiting for deal signals from watch groups...</p>
+                        </div>
+                    </template>
                 </div>
-            </template>
+                
+            </main>
+            
         </div>
-    </main>
+        
+    </div>
+
+    <!-- Admin Modal -->
+    <div x-show="isAdminOpen" 
+         x-transition:enter="transition ease-out duration-300"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition ease-in duration-200"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         @click.self="isAdminOpen = false"
+         class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+         x-cloak>
+        <div class="glass max-w-2xl w-full rounded-2xl shadow-2xl"
+             x-transition:enter="transition ease-out duration-300"
+             x-transition:enter-start="opacity-0 scale-95"
+             x-transition:enter-end="opacity-100 scale-100"
+             x-transition:leave="transition ease-in duration-200"
+             x-transition:leave-start="opacity-100 scale-100"
+             x-transition:leave-end="opacity-0 scale-95">
+            
+            <div class="p-8">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-2xl font-bold text-white mb-1">Admin Console</h2>
+                        <p class="text-sm text-slate-400">Update market reference prices</p>
+                    </div>
+                    <button @click="isAdminOpen = false" 
+                            class="text-slate-400 hover:text-white transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Reference Number</label>
+                        <input type="text" 
+                               x-model="target.ref" 
+                               placeholder="e.g., 126610LN"
+                               class="w-full px-4 py-3 rounded-lg glass border border-white/10 text-white mono focus:border-blue-500 transition-all">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Market Price (USD)</label>
+                        <input type="number" 
+                               x-model="target.price" 
+                               placeholder="e.g., 13800"
+                               class="w-full px-4 py-3 rounded-lg glass border border-white/10 text-white mono focus:border-blue-500 transition-all">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-300 mb-2">Admin Secret</label>
+                        <input type="password" 
+                               x-model="admin_secret" 
+                               placeholder="Enter admin secret"
+                               class="w-full px-4 py-3 rounded-lg glass border border-white/10 text-white focus:border-blue-500 transition-all">
+                    </div>
+                    
+                    <button @click="updateTarget()" 
+                            class="w-full btn-primary px-6 py-4 rounded-lg font-semibold text-white transition-all mt-6">
+                        💾 Update Market Price
+                    </button>
+                </div>
+            </div>
+            
+        </div>
+    </div>
 
     <script>
-        function terminal() {
+        function tradingDashboard() {
             return {
                 connected: false,
                 isAdminOpen: false,
@@ -145,38 +654,99 @@
                 trades: [],
                 toasts: [],
                 currentTime: '',
+                filterTier: 'all',
+                
+                get filteredTrades() {
+                    if (this.filterTier === 'all') {
+                        return this.trades;
+                    }
+                    return this.trades.filter(t => t.alert_tier === this.filterTier);
+                },
+                
+                get topRefs() {
+                    const refCounts = {};
+                    this.trades.forEach(trade => {
+                        if (!refCounts[trade.ref_number]) {
+                            refCounts[trade.ref_number] = { ref_number: trade.ref_number, count: 0 };
+                        }
+                        refCounts[trade.ref_number].count++;
+                    });
+                    return Object.values(refCounts).sort((a, b) => b.count - a.count);
+                },
                 
                 async init() {
-                    setInterval(() => this.currentTime = new Date().toISOString().replace('T', ' ').substring(0, 19), 1000);
+                    // Update clock
+                    this.updateTime();
+                    setInterval(() => this.updateTime(), 1000);
+                    
+                    // Initial data fetch
                     await this.checkHealth();
                     await this.fetchRecent();
+                    
+                    // Polling intervals
                     setInterval(() => this.checkHealth(), 10000);
                     setInterval(() => this.fetchRecent(), 5000);
+                    
+                    // Show welcome toast
+                    setTimeout(() => {
+                        this.addToast('Dashboard loaded successfully', 'success');
+                    }, 500);
+                },
+                
+                updateTime() {
+                    const now = new Date();
+                    this.currentTime = now.toLocaleString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
                 },
 
                 addToast(message, type = 'success') {
                     const id = Date.now();
                     this.toasts.push({ id, message, type, show: true });
+                    
                     setTimeout(() => {
                         const toast = this.toasts.find(t => t.id === id);
-                        if(toast) toast.show = false;
+                        if (toast) toast.show = false;
                     }, 4000);
+                    
+                    setTimeout(() => {
+                        this.toasts = this.toasts.filter(t => t.id !== id);
+                    }, 4500);
                 },
 
                 async checkHealth() {
                     try {
                         const res = await fetch('/health');
                         const data = await res.json();
-                        this.metrics.cache_size = data.cache_size;
+                        
+                        if (data.cache_size !== undefined) {
+                            this.metrics.cache_size = data.cache_size;
+                        }
+                        
+                        if (!this.connected) {
+                            this.addToast('Connected to trading engine', 'success');
+                        }
                         this.connected = true;
-                    } catch { this.connected = false; }
+                    } catch (error) {
+                        if (this.connected) {
+                            this.addToast('Connection lost', 'error');
+                        }
+                        this.connected = false;
+                    }
                 },
 
                 async updateTarget() {
-                    if(!this.target.ref || this.target.price <= 0 || !this.admin_secret) {
-                        this.addToast("Invalid Parameters", "error");
+                    if (!this.target.ref || this.target.price <= 0 || !this.admin_secret) {
+                        this.addToast('Please fill in all fields', 'error');
                         return;
                     }
+                    
                     try {
                         const res = await fetch('/admin/update-target', {
                             method: 'POST',
@@ -187,40 +757,62 @@
                                 admin_secret: this.admin_secret
                             })
                         });
-                        if(res.ok) {
-                            this.addToast("Market Price Updated");
+                        
+                        if (res.ok) {
+                            this.addToast(`Updated ${this.target.ref} to $${parseInt(this.target.price).toLocaleString()}`, 'success');
                             this.target = { ref: '', price: '' };
                             this.isAdminOpen = false;
+                            await this.checkHealth();
                         } else {
-                            this.addToast("Authorization Refused", "error");
+                            this.addToast('Invalid credentials or error', 'error');
                         }
-                    } catch { this.addToast("Network Error", "error"); }
+                    } catch (error) {
+                        this.addToast('Network error - check API connection', 'error');
+                    }
                 },
 
                 async fetchRecent() {
                     try {
                         const res = await fetch('/recent-trades');
-                        if(!res.ok) return;
+                        if (!res.ok) return;
+                        
                         const newData = await res.json();
                         
-                        // Incremental Update Logic
+                        // Incremental update logic
                         const existingIds = new Set(this.trades.map(t => t.id));
-                        const freshTrades = newData.filter(t => !existingIds.has(t.id))
-                                                   .map(t => ({ ...t, isNew: true }));
+                        const freshTrades = newData
+                            .filter(t => !existingIds.has(t.id))
+                            .map(t => ({ ...t, isNew: true }));
                         
-                        if(freshTrades.length > 0) {
-                            // Prepend new trades and keep the list lean
-                            this.trades = [...freshTrades, ...this.trades].slice(0, 50);
+                        if (freshTrades.length > 0) {
+                            // Prepend new trades
+                            this.trades = [...freshTrades, ...this.trades].slice(0, 100);
+                            
+                            // Show notification for hot deals
+                            freshTrades.forEach(trade => {
+                                if (trade.alert_tier === 'URGENT') {
+                                    this.addToast(`🔥 HOT DEAL: ${trade.ref_number} at $${trade.price_usd.toLocaleString()}`, 'success');
+                                }
+                            });
+                            
                             // Clear 'isNew' status after animation
                             setTimeout(() => {
                                 this.trades = this.trades.map(t => ({ ...t, isNew: false }));
-                            }, 3000);
+                            }, 2000);
                         }
-                    } catch (e) { console.error("Stream disrupted"); }
+                    } catch (error) {
+                        console.error('Failed to fetch trades:', error);
+                    }
                 },
 
                 formatTime(ts) {
-                    return new Date(ts).toLocaleTimeString('en-GB', { hour12: false });
+                    const date = new Date(ts);
+                    return date.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    });
                 }
             }
         }

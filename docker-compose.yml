@@ -1,376 +1,101 @@
 version: '3.8'
 
 services:
-  # =============================================================================
-  # DATABASE - PostgreSQL with TimescaleDB
-  # =============================================================================
-  postgres:
-    image: timescale/timescaledb:latest-pg14
-    container_name: watchy_postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_DB: ${POSTGRES_DB:-watchy_trading}
-      POSTGRES_USER: ${POSTGRES_USER:-watchy}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-watchy_dev_password}
-      PGDATA: /var/lib/postgresql/data/pgdata
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    networks:
-      - watchy_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-watchy} -d ${POSTGRES_DB:-watchy_trading}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '1'
-          memory: 1G
-
-  # =============================================================================
-  # CACHE & QUEUE - Redis
-  # =============================================================================
-  redis:
-    image: redis:7-alpine
-    container_name: watchy_redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
-    volumes:
-      - redis_data:/data
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    networks:
-      - watchy_network
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-
-  # =============================================================================
-  # BACKEND - FastAPI Application
-  # =============================================================================
-  backend:
+  # Python FastAPI Service
+  api:
     build:
       context: .
-      dockerfile: Dockerfile.backend
-      args:
-        PYTHON_VERSION: ${PYTHON_VERSION:-3.11}
-    container_name: watchy_backend
+      dockerfile: Dockerfile
+    container_name: watch-trading-api
     restart: unless-stopped
-    environment:
-      # Database
-      DATABASE_URL: postgresql://${POSTGRES_USER:-watchy}:${POSTGRES_PASSWORD:-watchy_dev_password}@postgres:5432/${POSTGRES_DB:-watchy_trading}
-      
-      # Redis
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
-      
-      # API Keys
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
-      ADMIN_SECRET: ${ADMIN_SECRET:-dev_admin_secret_12345}
-      
-      # Application
-      DEBUG: ${DEBUG:-true}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://localhost:8000}
-      
-      # Rate Limiting
-      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-100}
-    volumes:
-      - ./:/app:ro
-      - backend_cache:/app/.cache
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "8000:8000"
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - ADMIN_SECRET=${ADMIN_SECRET}
+      - DATABASE_URL=/data/trade_desk.db
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      - ./data:/data
+      - ./logs:/app/logs
     networks:
-      - watchy_network
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
+      - watch-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 2G
-        reservations:
-          cpus: '1'
-          memory: 512M
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --workers 2
 
-  # =============================================================================
-  # FRONTEND - Next.js Application
-  # =============================================================================
-  frontend:
+  # WhatsApp Listener Service
+  whatsapp:
     build:
       context: .
-      dockerfile: Dockerfile.frontend
-      args:
-        NODE_VERSION: ${NODE_VERSION:-18}
-    container_name: watchy_frontend
+      dockerfile: Dockerfile
+    container_name: watch-trading-whatsapp
     restart: unless-stopped
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-      NODE_ENV: ${NODE_ENV:-development}
-    volumes:
-      - ./frontend:/app:ro
-      - frontend_modules:/app/node_modules
-      - frontend_next:/app/.next
-    ports:
-      - "${FRONTEND_PORT:-3000}:3000"
-    networks:
-      - watchy_network
     depends_on:
-      - backend
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 1G
-        reservations:
-          cpus: '0.5'
-          memory: 512M
-
-  # =============================================================================
-  # WORKER - Celery Worker
-  # =============================================================================
-  celery_worker:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-    container_name: watchy_celery_worker
-    restart: unless-stopped
-    command: celery -A tasks.celery worker --loglevel=info --concurrency=4
+      api:
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-watchy}:${POSTGRES_PASSWORD:-watchy_dev_password}@postgres:5432/${POSTGRES_DB:-watchy_trading}
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY}
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      - PYTHON_API_URL=http://api:8000
+      - WATCHED_GROUPS=${WATCHED_GROUPS:-}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - MAX_RETRIES=${MAX_RETRIES:-3}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT:-10000}
     volumes:
-      - ./:/app:ro
+      - ./auth_info_baileys:/app/auth_info_baileys
+      - ./logs:/app/logs
     networks:
-      - watchy_network
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD", "celery", "-A", "tasks.celery", "inspect", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          cpus: '2'
-          memory: 1G
-        reservations:
-          cpus: '1'
-          memory: 512M
+      - watch-network
+    command: node server.js
 
-  # =============================================================================
-  # SCHEDULER - Celery Beat
-  # =============================================================================
-  celery_beat:
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
-    container_name: watchy_celery_beat
-    restart: unless-stopped
-    command: celery -A tasks.celery beat --loglevel=info
-    environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-watchy}:${POSTGRES_PASSWORD:-watchy_dev_password}@postgres:5432/${POSTGRES_DB:-watchy_trading}
-      REDIS_URL: redis://redis:6379/0
-      CELERY_BROKER_URL: redis://redis:6379/1
-      CELERY_RESULT_BACKEND: redis://redis:6379/2
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    volumes:
-      - ./:/app:ro
-      - celery_beat_data:/app/celerybeat-schedule
-    networks:
-      - watchy_network
-    depends_on:
-      redis:
-        condition: service_healthy
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
-
-  # =============================================================================
-  # PROXY - Nginx Reverse Proxy
-  # =============================================================================
+  # Optional: Nginx Reverse Proxy
   nginx:
     image: nginx:alpine
-    container_name: watchy_nginx
+    container_name: watch-trading-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - ./dash.html:/usr/share/nginx/html/index.html:ro
+    depends_on:
+      - api
+    networks:
+      - watch-network
+    profiles:
+      - with-nginx
+
+  # Optional: Database Backup Service
+  backup:
+    image: alpine:latest
+    container_name: watch-trading-backup
     restart: unless-stopped
     volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - nginx_cache:/var/cache/nginx
-      - nginx_logs:/var/log/nginx
-    ports:
-      - "${NGINX_HTTP_PORT:-80}:80"
-      - "${NGINX_HTTPS_PORT:-443}:443"
+      - ./data:/data
+      - ./backups:/backups
     networks:
-      - watchy_network
-    depends_on:
-      - backend
-      - frontend
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 256M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
+      - watch-network
+    profiles:
+      - with-backup
+    command: >
+      sh -c "while true; do
+        cp /data/trade_desk.db /backups/trade_desk_$(date +%Y%m%d_%H%M%S).db;
+        find /backups -type f -mtime +7 -delete;
+        sleep 86400;
+      done"
 
-  # =============================================================================
-  # MONITORING - Prometheus
-  # =============================================================================
-  prometheus:
-    image: prom/prometheus:latest
-    container_name: watchy_prometheus
-    restart: unless-stopped
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
-    volumes:
-      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ./prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
-      - prometheus_data:/prometheus
-    ports:
-      - "${PROMETHEUS_PORT:-9090}:9090"
-    networks:
-      - watchy_network
-    depends_on:
-      - backend
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-
-  # =============================================================================
-  # DASHBOARDS - Grafana
-  # =============================================================================
-  grafana:
-    image: grafana/grafana:latest
-    container_name: watchy_grafana
-    restart: unless-stopped
-    environment:
-      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
-      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
-      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3001}
-      GF_INSTALL_PLUGINS: redis-datasource
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning:/etc/grafana/provisioning:ro
-      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
-    ports:
-      - "${GRAFANA_PORT:-3001}:3000"
-    networks:
-      - watchy_network
-    depends_on:
-      - prometheus
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 512M
-        reservations:
-          cpus: '0.5'
-          memory: 256M
-
-# =============================================================================
-# NETWORKS
-# =============================================================================
 networks:
-  watchy_network:
+  watch-network:
     driver: bridge
-    name: watchy_network
 
-# =============================================================================
-# VOLUMES
-# =============================================================================
 volumes:
-  postgres_data:
-    name: watchy_postgres_data
-  redis_data:
-    name: watchy_redis_data
-  backend_cache:
-    name: watchy_backend_cache
-  frontend_modules:
-    name: watchy_frontend_modules
-  frontend_next:
-    name: watchy_frontend_next
-  celery_beat_data:
-    name: watchy_celery_beat_data
-  nginx_cache:
-    name: watchy_nginx_cache
-  nginx_logs:
-    name: watchy_nginx_logs
-  prometheus_data:
-    name: watchy_prometheus_data
-  grafana_data:
-    name: watchy_grafana_data
+  data:
+  logs:
+  backups:

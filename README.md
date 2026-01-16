@@ -1,738 +1,427 @@
-# Watchy - Luxury Watch Trading Engine
+# Watch Trading Engine 🚀⌚
 
-Production-ready platform for analyzing luxury watch deals with AI-powered parsing, advanced multi-factor scoring, price history tracking, and comprehensive monitoring. Built for professional watch traders.
+> **Production-ready AI-powered luxury watch trading system**  
+> Automatically scrape, analyze, and score watch listings from WhatsApp groups using GPT-4o Vision and advanced deal detection algorithms.
 
-## System Architecture
+[![CI/CD Pipeline](https://github.com/NickAiNYC/Watchy/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/NickAiNYC/Watchy/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Node.js 18+](https://img.shields.io/badge/node-18+-green.svg)](https://nodejs.org/)
 
-```
-WhatsApp/Telegram Groups
-       ↓
-┌──────────────────┐
-│  Node.js Server  │  ← Baileys WebSocket connection
-│   (server.js)    │  ← Real-time message capture
-└────────┬─────────┘
-         │ HTTP POST
-         ↓
-┌───────────────────────────┐
-│   Python FastAPI Backend  │  ← OpenAI GPT-4o Vision parsing
-│       (main.py)           │  ← Advanced deal scoring engine
-│                           │  ← PostgreSQL + TimescaleDB
-│                           │  ← Price history tracking
-│                           │  ← Prometheus metrics export
-└───────────────────────────┘
-         ↓
-┌───────────────────────────┐
-│   Frontend Interfaces     │  ← Interactive price charts
-│                           │  ← Trading dashboard
-│                           │  ← Real-time visualizations
-└───────────────────────────┘
-         ↓
-┌───────────────────────────┐
-│   Monitoring Stack        │  ← Grafana dashboards
-│                           │  ← Prometheus alerts
-│                           │  ← Production metrics
-└───────────────────────────┘
-```
+---
 
-## Core Features
+## 📋 Table of Contents
 
-### 🎯 Deal Scoring & Analysis
-✅ **Advanced multi-factor scoring engine** - 7-factor analysis with risk assessment  
-✅ **Arbitrage detection** - identify cross-platform profit opportunities with ROI calculation  
-✅ **Risk assessment** - 4-level classification with 10+ red flag patterns  
-✅ **Deal tier classification** - URGENT→PUSH→NORMAL→SKIP→OVERPRICED  
-✅ **Transparent explanations** - human-readable scoring breakdown
+- [Overview](#overview)
+- [Key Features](#key-features)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [API Documentation](#api-documentation)
+- [Dashboard](#dashboard)
+- [Notifications](#notifications)
+- [Deployment](#deployment)
+- [Contributing](#contributing)
+- [Security](#security)
+- [Troubleshooting](#troubleshooting)
+- [License](#license)
 
-### 📊 Price History & Predictions
-✅ **Interactive price charts** - Chart.js with zoom, pan, export capabilities  
-✅ **90-365 day history** - configurable time ranges with actual trade data  
-✅ **ML-based predictions** - 30-day forecasts with confidence intervals  
-✅ **Trend analysis** - automatic up/down/stable detection with strength metrics  
-✅ **Bollinger Bands** - volatility visualization  
-✅ **Multi-reference comparison** - compare up to 5 references simultaneously
+---
 
-### 🗄️ Production Database
-✅ **PostgreSQL + TimescaleDB** - optimized time-series price data  
-✅ **8 core tables** - users, sources, sellers, trades, market_prices, price_history, alerts, watchlist  
-✅ **Continuous aggregates** - hourly, daily, weekly, monthly analytics  
-✅ **Retention policies** - 2-year data retention with automatic cleanup  
-✅ **30+ strategic indexes** - B-tree, GIN, GiST for performance  
-✅ **Full-text search** - pg_trgm fuzzy matching  
-✅ **Migration tools** - SQLite to PostgreSQL migration script
+## 🎯 Overview
 
-### 🐳 Development Environment
-✅ **Docker Compose** - complete local setup with 9 services  
-✅ **FastAPI backend** - with auto-reload  
-✅ **Next.js frontend** - with hot module replacement  
-✅ **PostgreSQL + TimescaleDB** - with automatic schema loading  
-✅ **Redis** - for caching and task queue  
-✅ **Celery worker + beat** - background task processing  
-✅ **Nginx** - reverse proxy with rate limiting  
-✅ **Prometheus** - metrics collection  
-✅ **Grafana** - monitoring dashboards with 10 panels  
-✅ **Makefile** - 25+ convenience commands
+Watch Trading Engine is an enterprise-grade system for monitoring luxury watch marketplaces via WhatsApp groups. It combines:
 
-### ☸️ Production Deployment
-✅ **Kubernetes manifests** - 17 production-ready YAML files  
-✅ **High availability** - 3+ replicas with pod anti-affinity  
-✅ **Auto-scaling** - HPA for backend (3-10), frontend (3-10), Celery (3-20)  
-✅ **Zero-downtime updates** - rolling updates with health checks  
-✅ **Network security** - NetworkPolicies for pod-to-pod restrictions  
-✅ **TLS ingress** - with rate limiting and CORS  
-✅ **Persistent storage** - 50GB Postgres, 10GB Redis, 20GB Prometheus, 5GB Grafana  
-✅ **Monitoring** - ServiceMonitor, alert rules, dashboards
+- **AI Vision Analysis** - GPT-4o processes text + images
+- **Smart Deal Detection** - Algorithmic scoring based on market data
+- **Multi-Channel Alerts** - Discord, Slack, Telegram, Email
+- **Real-Time Dashboard** - Live trade monitoring interface
+- **Production Infrastructure** - Docker, CI/CD, monitoring
 
-### 📈 Monitoring & Alerts
-✅ **Grafana dashboard** - 10 key panels for system monitoring  
-✅ **6 production alerts** - error rate, response time, queue depth, DB connections, API costs, message flow  
-✅ **Prometheus metrics** - comprehensive backend instrumentation  
-✅ **Health checks** - liveness and readiness probes  
-✅ **Structured logging** - JSON format for analysis
+Perfect for watch dealers, collectors, and trading desks looking to gain competitive advantage through automation.
 
-### 🔌 AI Integration
-✅ **Real-time WhatsApp monitoring** - Baileys native protocol  
-✅ **GPT-4o Vision analysis** - text + image parsing  
-✅ **Automatic deduplication** - 4-hour duplicate detection  
-✅ **Watch terminology expert** - understands NIB, B+P, stickered, etc.  
-✅ **Multi-group support** - filter specific groups or monitor all
+---
 
-## Advanced Deal Scoring Engine
-
-The system includes a sophisticated scoring engine that analyzes deals across multiple dimensions:
-
-### Scoring Formula
+## 🏗️ Architecture
 
 ```
-Base Score = ((market_price - listing_price) / market_price) * 1000
-
-Adjustments:
-+ Condition bonus (0-20 points for NIB, unworn, excellent, etc.)
-+ Inclusions bonus (0-15 points for full set, box, papers)
-+ Seller reputation (0-10 points for verified dealers, high ratings)
-+ Urgency signals (0-5 points for quick sales, price reductions)
-+ Market trend (±20 points for rising/falling markets)
-+ Rarity factor (0-30 points for hard-to-find pieces)
-- Risk penalty (0-50 points for red flags)
-
-Final Score = clamp(Base Score + Adjustments, -500, 500)
+┌─────────────────────────────────────────────────────────────┐
+│                    WhatsApp Groups                          │
+│              (Luxury Watch Trading Channels)                │
+└────────────────────────┬────────────────────────────────────┘
+                         │
+                         ↓
+        ┌────────────────────────────────┐
+        │   Node.js WhatsApp Service     │
+        │        (server.js)             │
+        │                                │
+        │  • Baileys WebSocket           │
+        │  • Message capture             │
+        │  • Image download              │
+        │  • Content extraction          │
+        └────────────┬───────────────────┘
+                     │ HTTP POST
+                     ↓
+        ┌────────────────────────────────┐
+        │   Python FastAPI Backend       │
+        │         (main.py)              │
+        │                                │
+        │  • GPT-4o Vision AI            │
+        │  • Deal score calculation      │
+        │  • Deduplication logic         │
+        │  • SQLite database             │
+        │  • Cache management            │
+        └────────────┬───────────────────┘
+                     │
+                     ├──────────┐
+                     ↓          ↓
+        ┌──────────────────┐  ┌──────────────────┐
+        │  Dashboard UI    │  │  Notification     │
+        │  (dash.html)     │  │  Service          │
+        │                  │  │                   │
+        │  • Real-time     │  │  • Discord        │
+        │    updates       │  │  • Slack          │
+        │  • Filtering     │  │  • Telegram       │
+        │  • Analytics     │  │  • Email          │
+        └──────────────────┘  └──────────────────┘
 ```
 
-### Deal Tier Classification
+### Technology Stack
 
-- **URGENT (350+)**: Exceptional deal, act immediately
-- **PUSH (200-349)**: Good deal, worth pursuing
-- **NORMAL (100-199)**: Fair deal, acceptable
-- **SKIP (0-99)**: Near market price, not compelling
-- **OVERPRICED (<0)**: Above market, avoid
+**Backend:**
+- Python 3.10+ with FastAPI
+- SQLite with WAL mode
+- AsyncIO for concurrency
+- Connection pooling
 
-### Risk Assessment
+**Frontend:**
+- Alpine.js for reactivity
+- Tailwind CSS for styling
+- Server-Sent Events for updates
 
-The engine automatically detects red flags:
-- Price too good to be true (>40% below market)
-- New seller with no transaction history
-- Suspicious payment methods (wire only, crypto)
-- Vague or stock photos
-- Contradictory information
+**Infrastructure:**
+- Docker & Docker Compose
+- GitHub Actions CI/CD
+- Nginx reverse proxy
+- Let's Encrypt SSL
 
-Risk levels: **LOW**, **MEDIUM**, **HIGH**, **CRITICAL**
+---
 
-### Arbitrage Detection
+## ✨ Key Features
 
-Calculate profit potential across platforms:
-- Compare prices on WhatsApp, Chrono24, eBay, etc.
-- Account for platform fees (Chrono24: 6.5%, eBay: 12.9%)
-- Include PayPal fees, shipping, and insurance
-- Calculate net profit and ROI percentage
+### Core Functionality
 
-### Scoring API Endpoint
+✅ **Real-time WhatsApp Monitoring**  
+Native protocol integration with Baileys (no browser automation required)
 
-**POST /score-deal**
+✅ **AI Vision Analysis**  
+GPT-4o processes both text and images for accurate listing extraction
 
-Score any watch deal with comprehensive analysis:
+✅ **Intelligent Deal Scoring**  
+Algorithmic scoring system compares prices against market data
+
+✅ **Smart Deduplication**  
+Prevents duplicate alerts using temporal and hash-based detection
+
+✅ **Multi-Channel Notifications**  
+Instant alerts via Discord, Slack, Telegram, and Email
+
+✅ **Live Dashboard**  
+Real-time web interface with automatic updates and filtering
+
+### Advanced Features
+
+🔐 **Enterprise Security**  
+- Admin secret authentication
+- Rate limiting on all endpoints
+- Input validation and sanitization
+- CORS configuration
+
+📊 **Analytics & Reporting**  
+- Historical price tracking
+- Reference statistics
+- Deal performance metrics
+- Data export (CSV, JSON)
+
+🚀 **Production Ready**  
+- Docker containerization
+- CI/CD pipeline with GitHub Actions
+- Health checks and monitoring
+- Database connection pooling
+- Automated backups
+
+🔔 **Flexible Notifications**  
+- Configurable alert thresholds
+- Multiple channel support
+- Rich formatting (embeds, cards)
+- Deal tier classification (URGENT, PUSH, NORMAL)
+
+---
+
+## 🚀 Quick Start
+
+Get up and running in under 5 minutes:
 
 ```bash
-curl -X POST http://localhost:8000/score-deal \
-  -H "Content-Type: application/json" \
-  -d '{
-    "ref_number": "126610LN",
-    "listing_price": 16800,
-    "condition": "NIB",
-    "has_box": true,
-    "has_papers": true,
-    "is_full_set": true,
-    "seller_type": "VERIFIED_DEALER",
-    "seller_rating": 4.8,
-    "market_trend": "STABLE",
-    "comparable_count": 47
-  }'
-```
+# 1. Clone repository
+git clone https://github.com/NickAiNYC/Watchy.git
+cd Watchy
 
-**Response:**
-
-```json
-{
-  "status": "success",
-  "ref_number": "126610LN",
-  "listing_price": 16800,
-  "market_price": 21500,
-  "score": 265,
-  "tier": "PUSH",
-  "discount_percentage": 21.86,
-  "confidence": 94,
-  "breakdown": {
-    "base_score": 218,
-    "condition_bonus": 20,
-    "inclusions_bonus": 15,
-    "seller_bonus": 10,
-    "urgency_bonus": 0,
-    "market_trend_adjustment": 0,
-    "rarity_bonus": 0,
-    "risk_penalty": 0,
-    "final_score": 265
-  },
-  "explanation": "PUSH DEAL: 21.9% below market ($16,800 vs $21,500 market). NIB condition (+20), full set (+15), verified dealer (+10). Market stable. High confidence (47 recent comps).",
-  "risk_level": "LOW",
-  "risk_score": 0,
-  "red_flags": [],
-  "concerns": [],
-  "recommendations": ["Verified dealer - transaction should be safe"],
-  "timestamp": "2024-01-16T03:00:00"
-}
-```
-
-**Parameters:**
-
-Required:
-- `ref_number`: Watch reference (e.g., "126610LN")
-- `listing_price`: Asking price in USD
-
-Optional condition factors:
-- `condition`: NIB, UNWORN, EXCELLENT, GOOD, FAIR, POOR, UNKNOWN
-- `has_box`, `has_papers`, `has_warranty`, `is_full_set`: boolean
-
-Optional seller factors:
-- `seller_type`: VERIFIED_DEALER, ESTABLISHED_DEALER, PRIVATE_TRUSTED, PRIVATE_NEW, UNKNOWN
-- `seller_rating`: 0-5.0 rating
-- `seller_transaction_count`: number of transactions
-
-Optional signals:
-- `quick_sale`, `price_reduced`, `motivated_seller`: boolean urgency flags
-- `market_trend`: RISING, STABLE, FALLING, UNKNOWN
-- `comparable_count`: number of recent comparable sales
-- `rarity_score`: 0-30 for hard-to-find pieces
-
-Optional risk factors:
-- `vague_photos`, `new_seller_suspicious`, `payment_red_flags`, `contradictory_info`: boolean
-
-Optional arbitrage:
-- `calculate_arbitrage`: Dict of platform: price for arbitrage calculation
-
-### Example Scenarios
-
-**Urgent Deal (35% off, rare piece):**
-```json
-{
-  "ref_number": "5711/1A-010",
-  "listing_price": 70000,
-  "market_price": 108000,
-  "score": 420,
-  "tier": "URGENT",
-  "explanation": "URGENT DEAL: 35% below market. Rising market makes this exceptional. Act fast!"
-}
-```
-
-**High Risk (too cheap, suspicious seller):**
-```json
-{
-  "ref_number": "126610LN", 
-  "listing_price": 10000,
-  "market_price": 21500,
-  "score": 300,
-  "tier": "PUSH",
-  "risk_level": "CRITICAL",
-  "red_flags": ["Price is 53% below market - too good to be true", "Brand new seller with no transaction history"],
-  "recommendations": ["DO NOT PROCEED - High probability of fraud"]
-}
-```
-
-## Interactive Price History Chart
-
-Visualize price trends and predictions with an interactive chart interface.
-
-### Features
-
-- **90-Day Historical Data**: View actual trade prices over the last 90 days
-- **ML Price Predictions**: 30-day forecast with confidence intervals
-- **Trend Analysis**: Automatic detection of up/down/stable trends with strength metrics
-- **Bollinger Bands**: Volatility visualization with upper/lower bounds
-- **Multi-Reference Comparison**: Compare up to 5 references on the same chart
-- **Interactive Controls**: Zoom, pan, hover tooltips, and export to PNG
-- **Real-Time Stats**: Current price, average, min/max, 30-day change
-
-### Accessing the Chart
-
-Navigate to `/price-chart.html` or click **Price_Charts** in the dashboard header.
-
-### API Endpoints
-
-**Get Price History:**
-```bash
-GET /price-history/{ref_number}?days=90&include_predictions=true&include_bollinger=true
-```
-
-**Response:**
-```json
-{
-  "status": "success",
-  "ref_number": "126610LN",
-  "days": 90,
-  "data_points": [
-    {
-      "timestamp": "2024-01-01T00:00:00",
-      "price": 21500,
-      "deal_score": 265,
-      "sentiment": "WTS"
-    }
-  ],
-  "trend_analysis": {
-    "trend_direction": "up",
-    "trend_strength": 0.85,
-    "volatility": 450.25,
-    "avg_price": 21250.50,
-    "price_change_30d": 3.2,
-    "price_change_90d": 8.5
-  },
-  "bollinger_bands": {
-    "middle": [21200, 21250, 21300],
-    "upper": [22100, 22150, 22200],
-    "lower": [20300, 20350, 20400]
-  },
-  "predictions": [
-    {
-      "date": "2024-04-01",
-      "predicted_price": 22000,
-      "lower_bound": 21000,
-      "upper_bound": 23000,
-      "confidence": 0.85
-    }
-  ]
-}
-```
-
-**Compare References:**
-```bash
-GET /compare-references?refs=126610LN,116500LN,5711/1A-010&days=90
-```
-
-### Chart Usage
-
-1. **Add Reference**: Enter a reference number (e.g., "126610LN") and click "Add Reference"
-2. **Select Timeframe**: Choose from 30, 60, 90, 180, or 365 days
-3. **Toggle Features**: Enable/disable predictions and Bollinger bands
-4. **View Multiple**: Add up to 5 references to compare trends
-5. **Export**: Click "Export PNG" to save the chart as an image
-6. **Interact**: Hover over data points for details, click legend to toggle series
-
-### Prediction Disclaimer
-
-⚠️ Price predictions are based on historical data and simple statistical models (linear regression with confidence intervals). They are for **informational purposes only** and should not be used as the sole basis for trading decisions. Actual market prices may vary significantly. Confidence decreases further into the future.
-
-### Trend Analysis
-
-The system automatically analyzes price trends using:
-- **Linear Regression**: Calculates slope and direction
-- **R-Squared**: Measures trend strength (0-1)
-- **Volatility**: Standard deviation of prices
-- **Bollinger Bands**: Shows normal price range (2 standard deviations)
-
-**Trend Classifications:**
-- **Up**: Price rising >0.1% per day
-- **Down**: Price falling >0.1% per day
-- **Stable**: Price change within ±0.1% per day
-
-
-## Quick Start
-
-### Option 1: Docker Compose (Recommended)
-
-Complete development environment with all services:
-
-```bash
-# 1. Setup environment
+# 2. Configure environment
 cp .env.template .env
-# Edit .env with your configuration (OPENAI_API_KEY, etc.)
+# Edit .env with your API keys
 
-# 2. Start all services
+# 3. Start with Docker (recommended)
 docker-compose up -d
 
-# Or use Makefile
-make setup
-make up
+# 4. Access dashboard
+open http://localhost/dash.html
 
-# 3. Access services
-# - Frontend: http://localhost:3000
-# - Backend API: http://localhost:8000
-# - API Docs: http://localhost:8000/docs
-# - Grafana: http://localhost:3001 (admin/admin)
-# - Prometheus: http://localhost:9090
+# 5. First-time WhatsApp setup
+# Scan QR code in terminal to link your WhatsApp account
 ```
 
-### Option 2: Local Development
+That's it! The system will now monitor your WhatsApp groups and display deals on the dashboard.
 
-For development without Docker:
+---
 
-**Prerequisites:**
-- Node.js 18+
-- Python 3.10+
-- PostgreSQL 14+ with TimescaleDB extension
-- Redis 6+
-- OpenAI API key with GPT-4o access
+## 💻 Usage
 
-**Setup:**
+### Running the System
+
+#### Option 1: Docker Compose (Production)
 
 ```bash
-# 1. Install dependencies
-npm install
-pip install -r requirements.txt
+# Start all services
+docker-compose up -d
 
-# 2. Setup database
-createdb watchy_trading
-psql watchy_trading -c "CREATE EXTENSION timescaledb CASCADE;"
-psql watchy_trading < schema.sql
+# View real-time logs
+docker-compose logs -f
 
-# 3. Configure environment
-cp .env.template .env
-# Edit .env with your settings
+# Stop services
+docker-compose down
+```
 
-# 4. Start services
-# Terminal 1: Python API
-uvicorn main:app --reload
+#### Option 2: Manual (Development)
 
-# Terminal 2: WhatsApp Listener
+**Terminal 1 - Python API:**
+```bash
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+
+**Terminal 2 - WhatsApp Service:**
+```bash
 npm start
+# or for development with auto-reload:
+npm run dev
 ```
 
-### Option 3: Kubernetes Production
-
-Deploy to production Kubernetes cluster:
-
+**Terminal 3 - Full Stack:**
 ```bash
-# 1. Configure secrets
-cd k8s
-cp secrets.yaml secrets-prod.yaml
-# Edit secrets-prod.yaml with production values
-
-# 2. Deploy
-./deploy.sh production deploy
-
-# 3. Initialize database
-./deploy.sh production init-db
-
-# 4. Check status
-./deploy.sh production status
-
-# 5. Access services
-# Frontend: https://yourdomain.com (via Ingress)
-# Backend: https://api.yourdomain.com (via Ingress)
-# Grafana: kubectl port-forward -n watchy svc/grafana 3000:80
+npm run dev:full
+# This runs both services concurrently
 ```
 
-### First Time WhatsApp Setup
+### First-Time WhatsApp Setup
 
-1. Start the Node.js server (`npm start`)
+1. Start the WhatsApp service
 2. A QR code will appear in your terminal
 3. Open WhatsApp on your phone
-4. Go to: Settings → Linked Devices → Link a Device
+4. Go to: **Settings → Linked Devices → Link a Device**
 5. Scan the QR code
-6. Once connected: `✅ Connected to WhatsApp successfully`
+6. Wait for confirmation: `✅ Connected to WhatsApp successfully`
 
-**Note:** Session is saved in `auth_info_baileys/` - no QR needed on subsequent runs.
+**Subsequent runs:** Session is saved in `auth_info_baileys/` - no QR needed.
 
-## How It Works
+### Accessing the Dashboard
 
-### Message Flow
+Open your browser to:
+- Local: `http://localhost:8000/dash.html`
+- Docker: `http://localhost/dash.html`
 
-1. **WhatsApp receives message** → Baileys captures it
-2. **Text extraction** → Pulls message text + image caption
-3. **Image download** → Converts to Base64 if image present
-4. **HTTP POST to Python** → Sends data to `/parse-watch` endpoint
-5. **AI analysis** → GPT-4o Vision parses the content
-6. **Deduplication check** → Queries SQLite for recent duplicates
-7. **Deal scoring** → Compares price to `target_prices.json`
-8. **Storage** → Saves WTS listings to database
+The dashboard provides:
+- Real-time trade listings
+- Deal score visualization
+- Filtering by tier/sentiment
+- Reference statistics
+- Admin console access
 
-### AI Parsing Logic
+---
 
-The AI understands:
-- **Watch shorthand**: NIB, B+P, stickered, papers only, naked
-- **Condition scales**: 1-10 or descriptive (unworn, mint, etc.)
-- **Reference numbers**: Rolex 6-digit, Patek dash format, etc.
-- **Price formats**: "17.5k" → 17500, "17500++" → 17500
-- **Sentiment**: WTS (Want to Sell) vs WTB (Want to Buy)
+## 📚 API Documentation
 
-### Deduplication
+### Interactive Documentation
 
-Listings are considered duplicates if:
-- Same `ref_number` AND same `price_usd`
-- Within last 4 hours (configurable via `DEDUPLICATION_HOURS`)
+Once running, access interactive API docs:
+- **Swagger UI:** http://localhost:8000/docs
+- **ReDoc:** http://localhost:8000/redoc
 
-### Deal Scoring
+### Quick API Examples
 
-Formula:
-```
-discount = (target_price - actual_price) / target_price * 100
-deal_score = 50 + (discount * 2.5)
-
-Score = 100: 20%+ below market (HOT DEAL!)
-Score = 50:  At market price
-Score = 0:   20%+ above market
-```
-
-Scores 80+ are flagged as hot deals in the logs.
-
-## API Endpoints
-
-### POST `/parse-watch`
-
-Parses a watch listing from text and/or image.
-
-**Request:**
-```json
-{
-  "text": "WTS Rolex Sub 126610LN. 2023. Unworn. B+P. $12,000 firm.",
-  "imageBase64": "base64_encoded_image_data",
-  "groupName": "Watch Dealers NYC",
-  "senderId": "1234567890@s.whatsapp.net",
-  "messageId": "msg_12345",
-  "timestamp": 1705089600
-}
-```
-
-**Response (valid listing):**
-```json
-{
-  "status": "parsed",
-  "brand": "Rolex",
-  "model": "Submariner",
-  "ref_number": "126610LN",
-  "year": "2023",
-  "condition": "Unworn",
-  "condition_score": 10,
-  "inclusions": "Box and Papers",
-  "is_full_set": true,
-  "price_usd": 12000,
-  "sentiment": "WTS",
-  "deal_score": 54,
-  "raw_text": "WTS Rolex Sub 126610LN...",
-  "has_image": true
-}
-```
-
-**Response (ignored message):**
-```json
-{
-  "status": "ignore",
-  "reason": "Not a watch listing"
-}
-```
-
-**Response (duplicate):**
-```json
-{
-  "status": "duplicate",
-  "message": "Listing already seen in last 4 hours"
-}
-```
-
-### POST `/score-deal`
-
-**NEW!** Advanced multi-factor deal scoring with risk assessment.
-
-See the [Advanced Deal Scoring Engine](#advanced-deal-scoring-engine) section above for full documentation and examples.
-
-### GET `/price-history/{ref_number}`
-
-**NEW!** Get price history and ML predictions for a watch reference.
-
-Query Parameters:
-- `days`: Number of days (default: 90, max: 365)
-- `include_predictions`: Include 30-day forecast (default: true)
-- `include_bollinger`: Include Bollinger bands (default: true)
-
-See the [Interactive Price History Chart](#interactive-price-history-chart) section above for full documentation.
-
-### GET `/compare-references`
-
-**NEW!** Compare price history for multiple references.
-
-Query Parameters:
-- `refs`: Comma-separated list (e.g., "126610LN,116500LN")
-- `days`: Number of days (default: 90, max: 365)
-
-Returns comparison data with stats for each reference.
-
-### GET `/stats`
-
-Get database statistics.
-
-**Response:**
-```json
-{
-  "total_listings": 247,
-  "by_sentiment": {
-    "WTS": 198,
-    "WTB": 49
-  },
-  "top_brands": [
-    {"brand": "Rolex", "count": 156},
-    {"brand": "Patek Philippe", "count": 34}
-  ]
-}
-```
-
-### GET `/health`
-
-Health check endpoint.
-
-## Production Infrastructure
-
-### Database Schema
-
-Complete PostgreSQL + TimescaleDB schema optimized for time-series data:
-
-**8 Core Tables:**
-1. **users** - User accounts with authentication and subscription tiers
-2. **sources** - Data sources (WhatsApp groups, Telegram channels, etc.)
-3. **sellers** - Seller reputation tracking with performance metrics
-4. **trades** - All parsed listings (partitioned by month for scalability)
-5. **market_prices** - Calculated market prices updated every 10 minutes
-6. **price_history** - TimescaleDB hypertable for time-series price data
-7. **alerts** - User price alerts with multi-channel notifications
-8. **watchlist** - User saved references with custom notes
-
-**Advanced Features:**
-- Continuous aggregates (hourly, daily, weekly, monthly)
-- 2-year retention policy with automatic cleanup
-- Full-text search with pg_trgm fuzzy matching
-- 30+ strategic indexes for performance
-- Foreign keys and check constraints
-- Audit trails (created_at, updated_at)
-- Soft deletes (deleted_at)
-
-**Setup:**
+**Check system health:**
 ```bash
-createdb watchy_trading
-psql watchy_trading -c "CREATE EXTENSION timescaledb CASCADE;"
-psql watchy_trading < schema.sql
+curl http://localhost:8000/health
 ```
 
-**Migration from SQLite:**
+**Get recent trades:**
 ```bash
-export DATABASE_URL="postgresql://localhost/watchy_trading"
-python3 migrate_to_postgres.py
+curl http://localhost:8000/recent-trades?limit=20
 ```
 
-See `DATABASE.md` for complete schema documentation.
-
-### Docker Compose Stack
-
-9 services with health checks, persistent volumes, and resource limits:
-
-**Infrastructure Services:**
-- PostgreSQL + TimescaleDB (auto schema loading)
-- Redis (cache + task queue with persistence)
-- Nginx (reverse proxy with rate limiting)
-- Prometheus (metrics collection)
-- Grafana (dashboards with auto-provisioning)
-
-**Application Services:**
-- FastAPI backend (auto-reload in dev)
-- Next.js frontend (hot module replacement)
-- Celery worker (scalable background processing)
-- Celery beat (scheduled tasks)
-
-**Makefile Commands:**
+**Get reference statistics:**
 ```bash
-make setup      # Initial setup
-make up         # Start all services
-make down       # Stop all services
-make logs       # View logs
-make ps         # Show status
-make restart    # Restart all
-make clean      # Clean up volumes
+curl http://localhost:8000/stats/ref/126610LN?days=30
 ```
 
-See `DOCKER.md` for complete documentation (250+ lines).
-
-### Kubernetes Deployment
-
-17 production-ready manifests with HA, auto-scaling, and zero-downtime updates:
-
-**High Availability:**
-- 3+ replicas for all critical services
-- Pod anti-affinity rules for distribution
-- PodDisruptionBudgets (minAvailable: 2)
-- Rolling updates with maxUnavailable: 0
-
-**Auto-Scaling:**
-- Backend: 3-10 pods (70% CPU, 80% memory thresholds)
-- Frontend: 3-10 pods (70% CPU, 80% memory thresholds)
-- Celery: 3-20 pods (70% CPU, 80% memory thresholds)
-
-**Storage:**
-- PostgreSQL: 50GB (fast-ssd storage class)
-- Redis: 10GB (fast-ssd storage class)
-- Prometheus: 20GB (standard storage class)
-- Grafana: 5GB (standard storage class)
-
-**Security:**
-- NetworkPolicies (pod-to-pod restrictions)
-- Non-root containers
-- Kubernetes secrets management
-- TLS termination at Ingress
-- RBAC for Prometheus
-
-**Deployment:**
+**Export data (requires admin secret):**
 ```bash
-cd k8s
-./deploy.sh production deploy    # Deploy all services
-./deploy.sh production init-db   # Initialize database
-./deploy.sh production status    # Check deployment status
+curl "http://localhost:8000/export/trades?format=csv&admin_secret=YOUR_SECRET" -o export.csv
 ```
 
-See `k8s/KUBERNETES.md` for complete documentation (700+ lines).
+For complete API documentation, see [API.md](./API.md)
 
-### Monitoring & Alerts
+---
+---
 
-**Grafana Dashboard** (`watchy-system-monitoring.json`)
+## 🔔 Notifications
 
-10 key panels:
-1. Request Rate (req/sec) - HTTP traffic by method/path
-2. Response Time (p50, p95, p99) - Latency percentiles
-3. Error Rate (%) - 5xx errors with color-coded thresholds
-4. Active WebSocket Connections - Real-time connections
-5. Database Query Performance - Query duration by operation
-6. Cache Hit Rate - Redis efficiency
-7. Celery Queue Depth - Background task queue
-8. WhatsApp Messages Processed - Message flow rate
-9. AI API Costs ($/hour) - OpenAI spending
-10. Deal Score Distribution - Deal tier breakdown
+The system supports multiple notification channels for hot deal alerts.
 
-**6 Production Alerts** (`prometheus/alerts.yml`)
-- Error rate > 1% for 5 minutes
-- Response time p95 > 500ms for 5 minutes
-- Queue depth > 5000 tasks
-- Database connections > 80% of pool
-- API costs > $100/hour
-- No messages received in 5 minutes
+### Setup Instructions
 
-**Access:**
-- Docker: http://localhost:3001 (admin/admin)
-- Kubernetes: `kubectl port-forward -n watchy svc/grafana 3000:80`
+#### Discord
 
-See `grafana/dashboards/README.md` for complete usage guide.
+1. Create a webhook in your Discord server
+2. Copy the webhook URL
+3. Add to `.env`: `DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...`
 
-## Troubleshooting
+Notifications include:
+- Colored embeds based on tier
+- Deal details and calculations
+- Source group information
+
+#### Slack
+
+1. Create an incoming webhook in your Slack workspace
+2. Copy the webhook URL
+3. Add to `.env`: `SLACK_WEBHOOK_URL=https://hooks.slack.com/services/...`
+
+Notifications use Slack blocks for rich formatting.
+
+#### Telegram
+
+1. Create a bot via @BotFather
+2. Get your chat ID (use @userinfobot)
+3. Add to `.env`:
+   ```
+   TELEGRAM_BOT_TOKEN=your-token
+   TELEGRAM_CHAT_ID=your-chat-id
+   ```
+
+#### Email
+
+Configure SMTP settings in `.env`:
+```bash
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+ALERT_EMAIL_TO=recipient@example.com
+```
+
+For Gmail, use an [App Password](https://support.google.com/accounts/answer/185833).
+
+### Alert Tiers
+
+- **URGENT** (Score ≥ 350): 35%+ below market - immediate action
+- **PUSH** (Score ≥ 200): 20%+ below market - strong opportunity
+- **NORMAL** (Score < 200): Tracked but not urgent
+
+---
+
+## 🚢 Deployment
+
+### Quick Deploy Options
+
+**Heroku (1-Click):**
+```bash
+heroku create watch-trading
+heroku config:set OPENAI_API_KEY=sk-...
+git push heroku main
+```
+
+**AWS ECS (via Docker):**
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete AWS setup
+
+**Google Cloud Run:**
+```bash
+gcloud builds submit --tag gcr.io/PROJECT_ID/watch-trading
+gcloud run deploy --image gcr.io/PROJECT_ID/watch-trading
+```
+
+**DigitalOcean App Platform:**
+- Connect your GitHub repository
+- Configure environment variables
+- Deploy with one click
+
+For detailed deployment guides, see [DEPLOYMENT.md](./DEPLOYMENT.md)
+
+### Production Checklist
+
+- [ ] Set strong `ADMIN_SECRET` (32+ characters)
+- [ ] Configure HTTPS/SSL certificate
+- [ ] Set `DEBUG=false` in production
+- [ ] Configure CORS for your domain
+- [ ] Set up automated backups
+- [ ] Configure monitoring and logging
+- [ ] Enable rate limiting
+- [ ] Set up firewall rules
+- [ ] Configure notification channels
+- [ ] Test disaster recovery procedures
+
+---
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
+
+Quick start for contributors:
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/amazing-feature`
+3. Make your changes and add tests
+4. Run linting: `npm run lint`
+5. Commit with conventional commits: `git commit -m "feat: add amazing feature"`
+6. Push and create a Pull Request
+
+---
+
+## 🔒 Security
+
+### Security Best Practices
+
+1. **Never commit secrets** - Use `.env` for all sensitive data
+2. **Rotate API keys regularly** - Set up key rotation schedule
+3. **Use strong admin secrets** - Minimum 32 characters, cryptographically random
+4. **Enable HTTPS** - Always use SSL/TLS in production
+5. **Restrict API access** - Use firewall rules and rate limiting
+6. **Monitor for anomalies** - Set up alerts for unusual activity
+7. **Keep dependencies updated** - Run `npm audit` and `pip audit` regularly
+8. **Backup database** - Automated daily backups with encryption
+
+### Reporting Security Issues
+
+Please report security vulnerabilities to: [security@example.com](mailto:security@example.com)
+
+Do not create public GitHub issues for security vulnerabilities.
+
+---
+
+## 🔧 Troubleshooting
 
 ### WhatsApp Connection Issues
 
@@ -1343,24 +1032,67 @@ MIT License - see LICENSE file for details
 
 ## Support
 
-For issues, questions, or feature requests:
-- Open a GitHub issue
-- Check documentation files (DATABASE.md, DOCKER.md, KUBERNETES.md)
-- Review API docs at http://localhost:8000/docs
-
-## Acknowledgments
-
-Built with:
-- [FastAPI](https://fastapi.tiangolo.com/) - Modern Python web framework
-- [Baileys](https://github.com/WhiskeySockets/Baileys) - WhatsApp Web API
-- [OpenAI GPT-4o](https://openai.com/) - AI-powered parsing
-- [TimescaleDB](https://www.timescale.com/) - Time-series database
-- [Chart.js](https://www.chartjs.org/) - Interactive charts
-- [Docker](https://www.docker.com/) - Containerization
-- [Kubernetes](https://kubernetes.io/) - Container orchestration
-- [Prometheus](https://prometheus.io/) - Monitoring and alerting
-- [Grafana](https://grafana.com/) - Metrics visualization
+For issues, questions, or feature requests, please open a GitHub issue.
 
 ---
 
-**Made for professional watch traders. Deploy with confidence.** 🚀
+## 🔧 Troubleshooting
+
+### Common Issues
+
+**WhatsApp Connection Issues**
+
+```bash
+# Problem: "Connection closed" errors
+# Solution: Delete session and re-authenticate
+rm -rf auth_info_baileys/
+npm start  # Scan QR code again
+```
+
+**Database Locked Error**
+
+```bash
+# Problem: Database locked
+# Solution: Check WAL mode and close other connections
+sqlite3 trade_desk.db "PRAGMA journal_mode;"
+# Should return: wal
+```
+
+**Python API Not Running**
+
+```bash
+# Problem: Node.js can't connect to API
+# Solution: Start FastAPI service
+uvicorn main:app --host 0.0.0.0 --port 8000
+
+# Check if running:
+curl http://localhost:8000/health
+```
+
+**Out of Memory**
+
+```bash
+# Problem: Container crashes with OOM
+# Solution: Increase Docker memory limit
+docker-compose down
+# Edit docker-compose.yml, add resources limits
+docker-compose up -d
+```
+
+### Getting Help
+
+- 📖 **Documentation:** [Full docs](./API.md)
+- 🐛 **Bug Reports:** [GitHub Issues](https://github.com/NickAiNYC/Watchy/issues)
+- 💬 **Discussions:** [GitHub Discussions](https://github.com/NickAiNYC/Watchy/discussions)
+
+---
+
+<div align="center">
+
+**Made with ⌚ by watch enthusiasts, for watch enthusiasts**
+
+⭐ Star us on GitHub — it helps!
+
+[Report Bug](https://github.com/NickAiNYC/Watchy/issues) · [Request Feature](https://github.com/NickAiNYC/Watchy/issues) · [Documentation](./API.md)
+
+</div>
