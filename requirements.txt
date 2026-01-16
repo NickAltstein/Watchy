@@ -18,3 +18,4 @@ pillow==10.2.0
 pytesseract==0.3.10
 tenacity==8.2.3
 redis==5.0.1
+numpy==1.26.2
