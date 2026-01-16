@@ -187,6 +187,89 @@ That's it! The system will now monitor your WhatsApp groups and display deals on
 
 ---
 
+## 📦 Installation
+
+### Prerequisites
+
+- **Node.js** 18.0.0 or higher
+- **Python** 3.10 or higher
+- **npm** 9.0.0 or higher
+- **pip** for Python package management
+
+### Option 1: Docker (Recommended)
+
+No manual installation needed! Docker handles all dependencies:
+
+```bash
+# Copy environment template
+cp .env.template .env
+# Edit .env with your API keys
+
+# Start all services
+docker-compose up -d
+```
+
+### Option 2: Local Development Setup
+
+If you prefer running services locally without Docker:
+
+#### 1. Install Node.js Dependencies
+
+```bash
+# Install all Node.js packages
+npm install
+```
+
+This installs:
+- `@whiskeysockets/baileys` - WhatsApp Web integration
+- `express`, `cors`, `helmet` - Web server
+- `axios` - HTTP client
+- And all other packages listed in `package.json`
+
+#### 2. Install Python Dependencies
+
+```bash
+# Install all Python packages
+pip install -r requirements.txt
+```
+
+This installs:
+- `fastapi` & `uvicorn` - API server
+- `openai` - GPT-4 integration
+- `aiosqlite` - Database
+- And all other packages listed in `requirements.txt`
+
+#### 3. Configure Environment
+
+```bash
+# Copy environment template
+cp .env.template .env
+# Edit .env and add your API keys:
+# - OPENAI_API_KEY
+# - DISCORD_WEBHOOK_URL (optional)
+# - Other notification webhooks as needed
+```
+
+#### 4. Verify Installation
+
+```bash
+# Check Node.js installation
+node --version  # Should be >= 18.0.0
+npm --version   # Should be >= 9.0.0
+
+# Check Python installation  
+python3 --version  # Should be >= 3.10
+pip3 --version
+
+# Verify packages installed
+npm list @whiskeysockets/baileys
+python3 -c "import fastapi; print('FastAPI installed')"
+```
+
+Now you're ready to run the services! See [Usage](#usage) below.
+
+---
+
 ## 💻 Usage
 
 ### Running the System
@@ -205,6 +288,8 @@ docker-compose down
 ```
 
 #### Option 2: Manual (Development)
+
+**Prerequisites:** Complete the [Local Development Setup](#option-2-local-development-setup) installation steps first.
 
 **Terminal 1 - Python API:**
 ```bash
