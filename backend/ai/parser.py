@@ -289,7 +289,7 @@ EXAMPLES:
             await self.redis.setex(
                 cache_key,
                 int(self.cache_ttl.total_seconds()),
-                result.json()
+                result.model_dump_json()  # Pydantic v2 method
             )
             logger.debug(f"Cached result for key {cache_key[:16]}...")
         except Exception as e:

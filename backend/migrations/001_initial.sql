@@ -50,8 +50,8 @@ CREATE TABLE listings (
     ai_model VARCHAR(50),
     embedding vector(1536),  -- For semantic search with OpenAI embeddings
     
-    -- Source tracking
-    whatsapp_group_id BIGINT REFERENCES watched_groups(id) ON DELETE SET NULL,
+    -- Source tracking (will add FK constraint later)
+    whatsapp_group_id BIGINT,
     sender_phone VARCHAR(20),
     sender_name VARCHAR(200),
     message_id VARCHAR(100),
@@ -92,7 +92,7 @@ CREATE TABLE listing_images (
 -- WhatsApp connections (linked phone numbers)
 CREATE TABLE whatsapp_connections (
     id BIGSERIAL PRIMARY KEY,
-    team_id INTEGER NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+    team_id INTEGER NOT NULL,  -- Will add FK constraint after teams table exists
     phone_number VARCHAR(20) NOT NULL UNIQUE,
     display_name VARCHAR(200),
     status VARCHAR(20) DEFAULT 'disconnected' CHECK (status IN ('connected', 'disconnected', 'qr_pending', 'error')),
@@ -454,3 +454,17 @@ COMMENT ON TABLE price_history IS 'Time-series price data for watch references';
 COMMENT ON TABLE saved_searches IS 'User-saved search filters with alert notifications';
 COMMENT ON TABLE conversations IS 'Direct message conversations between users';
 COMMENT ON TABLE messages IS 'Messages within conversations';
+
+-- ============================================================================
+-- FOREIGN KEY CONSTRAINTS (added after all tables created)
+-- ============================================================================
+
+-- Add FK constraints that had forward references
+ALTER TABLE listings 
+    ADD CONSTRAINT fk_listings_whatsapp_group 
+    FOREIGN KEY (whatsapp_group_id) REFERENCES watched_groups(id) ON DELETE SET NULL;
+
+-- Note: teams table FK will need to be added if teams table is created from auth system
+-- ALTER TABLE whatsapp_connections 
+--     ADD CONSTRAINT fk_whatsapp_connections_team 
+--     FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE;

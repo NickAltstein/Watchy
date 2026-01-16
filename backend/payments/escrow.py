@@ -143,11 +143,9 @@ class EscrowService:
             # Store account ID in database
             with self.db_session_factory() as db:
                 # Update user's stripe account ID
-                # (Assuming users table has stripe_account_id column)
                 db.execute(
-                    update("users").where("id" == user_id).values(
-                        stripe_account_id=account.id
-                    )
+                    "UPDATE users SET stripe_account_id = :account_id WHERE id = :user_id",
+                    {"account_id": account.id, "user_id": user_id}
                 )
                 db.commit()
             
@@ -191,15 +189,15 @@ class EscrowService:
             
             with self.db_session_factory() as db:
                 # Get seller's Stripe account ID
-                seller = db.execute(
+                result = db.execute(
                     "SELECT stripe_account_id FROM users WHERE id = :id",
                     {"id": seller_id}
                 ).fetchone()
                 
-                if not seller or not seller.stripe_account_id:
+                if not result or not result[0]:
                     raise Exception("Seller has not completed Stripe onboarding")
                 
-                seller_stripe_account = seller.stripe_account_id
+                seller_stripe_account = result[0]
                 
                 # Create Payment Intent with transfer_data (escrow)
                 payment_intent = stripe.PaymentIntent.create(
@@ -574,25 +572,26 @@ class EscrowService:
     async def _handle_transfer_paid(self, transfer):
         """Handle transfer to seller completed"""
         transfer_id = transfer['id']
+        payment_intent_id = transfer.get('source_transaction')
         
-        with self.db_session_factory() as db:
-            db.execute(
-                """
-                UPDATE transactions SET
-                    stripe_transfer_id = :transfer_id,
-                    updated_at = :now
-                WHERE stripe_payment_intent_id = (
-                    SELECT source_transaction FROM stripe.transfers WHERE id = :transfer_id
+        if payment_intent_id:
+            with self.db_session_factory() as db:
+                db.execute(
+                    """
+                    UPDATE transactions SET
+                        stripe_transfer_id = :transfer_id,
+                        updated_at = :now
+                    WHERE stripe_payment_intent_id = :payment_intent
+                    """,
+                    {
+                        "transfer_id": transfer_id,
+                        "payment_intent": payment_intent_id,
+                        "now": datetime.utcnow()
+                    }
                 )
-                """,
-                {
-                    "transfer_id": transfer_id,
-                    "now": datetime.utcnow()
-                }
-            )
-            db.commit()
-        
-        logger.info(f"Transfer completed: {transfer_id}")
+                db.commit()
+            
+            logger.info(f"Transfer completed: {transfer_id}")
     
     async def _handle_dispute_created(self, dispute):
         """Handle dispute opened"""
