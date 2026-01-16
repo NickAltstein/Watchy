@@ -10,7 +10,7 @@ Provides sophisticated scoring for luxury watch deals with:
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple, Literal
+from typing import Dict, List, Optional, Tuple, Literal, Any
 from datetime import datetime
 from enum import Enum
 from pydantic import BaseModel, Field, validator
@@ -97,7 +97,7 @@ class DealFactors(BaseModel):
     payment_red_flags: bool = Field(default=False)
     contradictory_info: bool = Field(default=False)
     
-    def model_post_init(self, __context):
+    def model_post_init(self, __context: Any) -> None:
         """Validate after all fields are set"""
         if self.listing_price > self.market_price * 3:
             logger.warning(f"Listing price ${self.listing_price} is >3x market price")
