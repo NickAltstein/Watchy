@@ -87,3 +87,10 @@ postgres_data/
 redis_data/
 grafana_data/
 prometheus_data/
+
+# Kubernetes production secrets
+k8s/secrets-production.yaml
+k8s/secrets-*.yaml
+k8s/*.secret.yaml
+k8s/kubeconfig
+k8s/*.kubeconfig
