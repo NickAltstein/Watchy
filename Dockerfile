@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ==========================================
 # Multi-stage Dockerfile for Watch Trading Engine
 # ==========================================
@@ -44,10 +45,29 @@ ENV PATH=/root/.local/bin:$PATH
 
 # Copy Node.js dependencies from builder
 COPY --from=node-builder /app/node_modules ./node_modules
+=======
+FROM node:18-alpine
+
+# Install Python for the API
+RUN apk add --no-cache python3 py3-pip
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY requirements.txt ./
+
+# Install Node dependencies
+RUN npm ci --only=production
+
+# Install Python dependencies
+RUN pip3 install --no-cache-dir -r requirements.txt
+>>>>>>> origin/main
 
 # Copy application files
 COPY . .
 
+<<<<<<< HEAD
 # Create necessary directories
 RUN mkdir -p auth_info_baileys logs
 
@@ -60,3 +80,17 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 # Default command (can be overridden)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+=======
+# Create logs directory
+RUN mkdir -p logs
+
+# Expose ports
+EXPOSE 3000 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD node -e "require('http').get('http://localhost:3000/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1); });"
+
+# Start both services using PM2
+CMD ["npx", "pm2-runtime", "start", "ecosystem.config.js"]
+>>>>>>> origin/main

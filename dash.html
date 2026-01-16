@@ -345,8 +345,36 @@
         </template>
     </div>
 
+<<<<<<< HEAD
     <!-- Main Container -->
     <div class="relative z-10 h-screen flex flex-col">
+=======
+    <header class="h-10 border-b border-[#1A1A1A] px-4 flex items-center justify-between bg-[#050505] text-[10px] tracking-widest uppercase font-medium text-gray-400">
+        <div class="flex items-center space-x-6">
+            <div class="flex items-center space-x-2">
+                <div class="w-2 h-2 rounded-full" :class="connected ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]' : 'bg-red-600'"></div>
+                <span x-text="connected ? 'System.Ready' : 'System.Offline'"></span>
+            </div>
+            <div class="flex items-center space-x-4 border-l border-[#1A1A1A] pl-6">
+                <span>Refs_Tracked: <span class="text-white mono" x-text="metrics.cache_size">0</span></span>
+                <span>Signal_Count: <span class="text-white mono" x-text="trades.length">0</span></span>
+            </div>
+        </div>
+        <div class="flex items-center space-x-6">
+            <span class="mono text-gray-500" x-text="currentTime"></span>
+            <a href="/price-chart.html" 
+                class="px-3 py-1 border border-gray-700 hover:border-green-500 hover:text-green-400 transition-all">
+                Price_Charts
+            </a>
+            <button @click="isAdminOpen = !isAdminOpen" 
+                    class="px-3 py-1 border border-gray-700 hover:border-blue-500 hover:text-blue-400 transition-all">
+                Config_Console
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex flex-col overflow-hidden relative">
+>>>>>>> origin/main
         
         <!-- Premium Header -->
         <header class="glass border-b border-white/10">
