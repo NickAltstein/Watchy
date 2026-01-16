@@ -23,6 +23,16 @@ from slowapi.errors import RateLimitExceeded
 
 # --- Custom Module Import ---
 from ref_manager import init_ref_table, update_target_price_in_db, get_all_targets_from_db
+from deal_scorer import (
+    DealScorer,
+    DealFactors,
+    DealTier as ScorerDealTier,
+    RiskLevel,
+    ConditionGrade,
+    SellerType,
+    MarketTrend,
+    score_watch_deal,
+)
 
 # --- Custom Exceptions ---
 class WatchEngineError(Exception):
@@ -295,6 +305,80 @@ class HealthResponse(BaseModel):
     uptime: float
     timestamp: str
 
+
+# --- ADVANCED SCORING MODELS ---
+class ScoreDealRequest(BaseModel):
+    """Request model for advanced deal scoring"""
+    ref_number: str = Field(..., description="Reference number")
+    listing_price: int = Field(..., gt=0, description="Listing price in USD")
+    
+    # Optional condition factors
+    condition: Optional[str] = Field(default="UNKNOWN", description="NIB, UNWORN, EXCELLENT, GOOD, FAIR, POOR, UNKNOWN")
+    has_box: bool = Field(default=False)
+    has_papers: bool = Field(default=False)
+    has_warranty: bool = Field(default=False)
+    is_full_set: bool = Field(default=False)
+    
+    # Optional seller factors
+    seller_type: Optional[str] = Field(default="UNKNOWN", description="VERIFIED_DEALER, ESTABLISHED_DEALER, PRIVATE_TRUSTED, PRIVATE_NEW, UNKNOWN")
+    seller_rating: Optional[float] = Field(default=None, ge=0, le=5)
+    seller_transaction_count: int = Field(default=0, ge=0)
+    
+    # Optional urgency signals
+    quick_sale: bool = Field(default=False)
+    price_reduced: bool = Field(default=False)
+    motivated_seller: bool = Field(default=False)
+    
+    # Optional market context
+    market_trend: Optional[str] = Field(default="UNKNOWN", description="RISING, STABLE, FALLING, UNKNOWN")
+    comparable_count: int = Field(default=0, ge=0)
+    rarity_score: int = Field(default=0, ge=0, le=30)
+    
+    # Optional risk factors
+    vague_photos: bool = Field(default=False)
+    new_seller_suspicious: bool = Field(default=False)
+    payment_red_flags: bool = Field(default=False)
+    contradictory_info: bool = Field(default=False)
+    
+    # Optional arbitrage calculation
+    calculate_arbitrage: Optional[Dict[str, int]] = Field(default=None, description="Dict of platform: sell_price for arbitrage calc")
+
+
+class ScoreDealResponse(BaseModel):
+    """Response model for advanced deal scoring"""
+    status: str
+    ref_number: str
+    listing_price: int
+    market_price: int
+    
+    # Score details
+    score: int
+    tier: str
+    discount_percentage: float
+    confidence: int
+    
+    # Breakdown
+    breakdown: Dict[str, int]
+    
+    # Explanation
+    explanation: str
+    
+    # Risk assessment
+    risk_level: str
+    risk_score: int
+    red_flags: List[str]
+    concerns: List[str]
+    recommendations: List[str]
+    
+    # Optional arbitrage
+    arbitrage: Optional[Dict[str, Any]] = None
+    
+    timestamp: str
+
+
+# Initialize deal scorer
+deal_scorer = DealScorer()
+
 # --- UTILS ---
 async def get_clean_ref(raw: Optional[str]) -> Optional[str]:
     """Extract and clean reference number (ASYNC FIX)"""
@@ -546,6 +630,108 @@ Do not add commentary."""
             logger.error(f"Validation/processing error: {e}")
             raise
 
+@app.post("/score-deal", response_model=ScoreDealResponse, tags=["scoring"])
+@limiter.limit(settings.PARSE_RATE_LIMIT)
+async def score_deal_endpoint(
+    request: Request,
+    req: ScoreDealRequest
+):
+    """
+    Advanced deal scoring with multi-factor analysis.
+    
+    Scores a watch deal based on:
+    - Price vs market value
+    - Condition and inclusions
+    - Seller reputation
+    - Urgency signals
+    - Market trends
+    - Risk factors
+    
+    Returns comprehensive scoring with explanation, risk assessment, and optional arbitrage.
+    """
+    try:
+        # Get market price from cache
+        ref_clean = req.ref_number.upper().replace(" ", "").strip()
+        market_price = TARGET_PRICES_CACHE.get(ref_clean)
+        
+        if not market_price:
+            logger.warning(f"No market price found for {ref_clean}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No market price found for reference {req.ref_number}"
+            )
+        
+        # Build deal factors
+        factors = DealFactors(
+            market_price=market_price,
+            listing_price=req.listing_price,
+            condition=ConditionGrade(req.condition.upper()),
+            has_box=req.has_box,
+            has_papers=req.has_papers,
+            has_warranty=req.has_warranty,
+            is_full_set=req.is_full_set,
+            seller_type=SellerType(req.seller_type.upper() if req.seller_type else "UNKNOWN"),
+            seller_rating=req.seller_rating,
+            seller_transaction_count=req.seller_transaction_count,
+            quick_sale_indicated=req.quick_sale,
+            price_reduced=req.price_reduced,
+            motivated_seller=req.motivated_seller,
+            market_trend=MarketTrend(req.market_trend.upper() if req.market_trend else "UNKNOWN"),
+            comparable_count=req.comparable_count,
+            rarity_score=req.rarity_score,
+            vague_photos=req.vague_photos,
+            new_seller_suspicious=req.new_seller_suspicious,
+            payment_red_flags=req.payment_red_flags,
+            contradictory_info=req.contradictory_info
+        )
+        
+        # Score the deal
+        result = deal_scorer.score_deal(factors, calculate_arbitrage_for=req.calculate_arbitrage)
+        
+        # Build response
+        response = ScoreDealResponse(
+            status="success",
+            ref_number=ref_clean,
+            listing_price=req.listing_price,
+            market_price=market_price,
+            score=result.score,
+            tier=result.tier.value,
+            discount_percentage=result.breakdown.discount_percentage,
+            confidence=result.confidence,
+            breakdown={
+                "base_score": result.breakdown.base_score,
+                "condition_bonus": result.breakdown.condition_bonus,
+                "inclusions_bonus": result.breakdown.inclusions_bonus,
+                "seller_bonus": result.breakdown.seller_bonus,
+                "urgency_bonus": result.breakdown.urgency_bonus,
+                "market_trend_adjustment": result.breakdown.market_trend_adjustment,
+                "rarity_bonus": result.breakdown.rarity_bonus,
+                "risk_penalty": result.breakdown.risk_penalty,
+                "final_score": result.breakdown.final_score
+            },
+            explanation=result.explanation,
+            risk_level=result.risk_assessment.level.value,
+            risk_score=result.risk_assessment.score,
+            red_flags=result.risk_assessment.red_flags,
+            concerns=result.risk_assessment.concerns,
+            recommendations=result.risk_assessment.recommendations,
+            arbitrage=result.arbitrage.model_dump() if result.arbitrage else None,
+            timestamp=datetime.now().isoformat()
+        )
+        
+        logger.info(f"Scored deal: {ref_clean} ${req.listing_price} = {result.score} ({result.tier.value})")
+        
+        return response
+        
+    except HTTPException:
+        # Re-raise HTTPExceptions so FastAPI handles them properly
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error scoring deal: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to score deal: {str(e)}")
+
 @app.get("/health", response_model=HealthResponse, tags=["monitoring"])
 async def health():
     """Health check endpoint"""
@@ -573,7 +759,7 @@ async def health():
 
 @app.get("/metrics", tags=["monitoring"])
 @limiter.limit(settings.METRICS_RATE_LIMIT)  # Added rate limiting
-async def metrics(admin_secret: Optional[str] = None):
+async def metrics(request: Request, admin_secret: Optional[str] = None):
     """Metrics endpoint with optional authentication"""
     # Optional authentication for sensitive metrics
     if admin_secret != settings.ADMIN_SECRET:
