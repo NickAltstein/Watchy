@@ -30,6 +30,6 @@ email-validator==2.1.1
 psycopg2-binary==2.9.9
 asyncpg==0.29.0
 # Payment processing
-stripe==7.8.0
+stripe==11.1.0
 # Additional async/utilities
 redis[hiredis]==5.0.1
