@@ -19,3 +19,10 @@ pytesseract==0.3.10
 tenacity==8.2.3
 redis==5.0.1
 numpy==1.26.2
+# Authentication dependencies
+sqlalchemy==2.0.23
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.4.0
+pyotp==2.9.0
+qrcode[pil]==7.4.2
+email-validator==2.1.1
