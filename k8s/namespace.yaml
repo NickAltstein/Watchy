@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: watchy
+  labels:
+    app.kubernetes.io/name: watchy
+    app.kubernetes.io/instance: watchy-prod
+    app.kubernetes.io/version: "1.0.0"
+    app.kubernetes.io/component: namespace
+    app.kubernetes.io/managed-by: kubectl
