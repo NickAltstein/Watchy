@@ -170,7 +170,7 @@ async def register(
     # Create user
     user = User(
         email=request.email,
-        user_type=request.user_type.value,
+        user_type=request.user_type,  # Enum used directly
         is_verified=False
     )
     user.set_password(request.password)
@@ -189,7 +189,7 @@ async def register(
     team = Team(
         name=f"{request.full_name or request.email}'s Team",
         owner_id=user.id,
-        subscription_tier=SubscriptionTier.FREE.value
+        subscription_tier=SubscriptionTier.FREE  # Enum used directly
     )
     db.add(team)
     db.flush()

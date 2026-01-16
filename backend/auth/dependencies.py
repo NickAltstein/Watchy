@@ -8,11 +8,13 @@ from datetime import datetime, timedelta
 from typing import Optional, Callable
 from functools import wraps
 import hashlib
+import logging
 
 from fastapi import Depends, HTTPException, status, Header, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
-from sqlalchemy.orm import Session
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, sessionmaker
 import redis
 from pydantic import BaseModel
 
@@ -20,7 +22,7 @@ from .models import User, APIKey, Session as DBSession, AuthEvent, UserType, Sub
 
 # JWT Configuration
 SECRET_KEY = "your-secret-key-change-in-production"  # Load from environment
-ALGORITHM = "RS256"  # Use RS256 in production with proper key management
+ALGORITHM = "HS256"  # Using HS256 for HMAC-based tokens (use RS256 in production with RSA keys)
 ACCESS_TOKEN_EXPIRE_MINUTES = 15
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 
@@ -39,21 +41,18 @@ class TokenData(BaseModel):
     session_id: int
 
 
+# Database setup - created once at module level
+SQLALCHEMY_DATABASE_URL = "sqlite:///./watchy_auth.db"
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
 def get_db() -> Session:
     """
     Database session dependency
     
     Yields a database session and ensures cleanup
     """
-    # TODO: Implement proper database session management
-    # This is a placeholder - integrate with your existing database setup
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import sessionmaker
-    
-    SQLALCHEMY_DATABASE_URL = "sqlite:///./watchy_auth.db"
-    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    
     db = SessionLocal()
     try:
         yield db
@@ -430,8 +429,10 @@ def rate_limit(max_requests: int, window_seconds: int):
                     # Increment counter
                     redis_client.incr(key)
             
-            except redis.RedisError:
-                # If Redis fails, allow the request (fail open)
+            except redis.RedisError as e:
+                # If Redis fails, allow the request (fail open) but log the error
+                import logging
+                logging.warning(f"Rate limiting failed due to Redis error: {e}")
                 pass
             
             return await func(*args, **kwargs)
