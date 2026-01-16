@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # Environment variables and secrets
 .env
 .env.local
@@ -23,8 +22,6 @@ session/
 .wwebjs_auth/
 .wwebjs_cache/
 
-=======
->>>>>>> origin/main
 # Python
 __pycache__/
 *.py[cod]
@@ -49,7 +46,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
-<<<<<<< HEAD
 .pytest_cache/
 .mypy_cache/
 .dmypy.json
@@ -103,34 +99,10 @@ coverage/
 # IDEs and editors
 .idea/
 .vscode/
-=======
-*.log
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
-coverage.xml
-*.cover
-.hypothesis/
-
-# Virtual Environments
-venv/
-ENV/
-env/
-.venv
-
-# IDEs
-.vscode/
-.idea/
->>>>>>> origin/main
 *.swp
 *.swo
 *~
 .DS_Store
-<<<<<<< HEAD
 .project
 .classpath
 .c9/
@@ -143,37 +115,11 @@ env/
 Thumbs.db
 .DS_Store
 Desktop.ini
-=======
-
-# Environment
-.env
-.env.local
-
-# Node
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# WhatsApp session
-auth_info_baileys/
-
-# Logs
-*.log
-logs/
-engine.log
->>>>>>> origin/main
 
 # Temporary files
 tmp/
 temp/
 *.tmp
-<<<<<<< HEAD
 *.bak
 *.backup
 
@@ -220,24 +166,3 @@ exports/
 # Local configuration overrides
 local.config.js
 local.settings.json
-=======
-
-# Docker
-.env
-.env.production
-docker-compose.override.yml
-backups/
-
-# Docker volumes (if using local bind mounts)
-postgres_data/
-redis_data/
-grafana_data/
-prometheus_data/
-
-# Kubernetes production secrets
-k8s/secrets-production.yaml
-k8s/secrets-*.yaml
-k8s/*.secret.yaml
-k8s/kubeconfig
-k8s/*.kubeconfig
->>>>>>> origin/main
