@@ -26,10 +26,172 @@ WhatsApp Groups
 ✅ **AI Vision analysis** using GPT-4o for text + images  
 ✅ **Automatic deduplication** - ignores duplicate listings within 4 hours  
 ✅ **Deal scoring** - compares prices against reference targets  
+✅ **Advanced multi-factor scoring engine** - comprehensive analysis with risk assessment  
+✅ **Arbitrage detection** - identify cross-platform profit opportunities  
 ✅ **SQLite storage** - saves all WTS listings  
 ✅ **Multi-group support** - filter specific groups or monitor all  
 ✅ **Robust reconnection** - handles WhatsApp disconnections automatically  
 ✅ **Watch terminology expert** - understands NIB, B+P, stickered, etc.
+
+## Advanced Deal Scoring Engine
+
+The system includes a sophisticated scoring engine that analyzes deals across multiple dimensions:
+
+### Scoring Formula
+
+```
+Base Score = ((market_price - listing_price) / market_price) * 1000
+
+Adjustments:
++ Condition bonus (0-20 points for NIB, unworn, excellent, etc.)
++ Inclusions bonus (0-15 points for full set, box, papers)
++ Seller reputation (0-10 points for verified dealers, high ratings)
++ Urgency signals (0-5 points for quick sales, price reductions)
++ Market trend (±20 points for rising/falling markets)
++ Rarity factor (0-30 points for hard-to-find pieces)
+- Risk penalty (0-50 points for red flags)
+
+Final Score = clamp(Base Score + Adjustments, -500, 500)
+```
+
+### Deal Tier Classification
+
+- **URGENT (350+)**: Exceptional deal, act immediately
+- **PUSH (200-349)**: Good deal, worth pursuing
+- **NORMAL (100-199)**: Fair deal, acceptable
+- **SKIP (0-99)**: Near market price, not compelling
+- **OVERPRICED (<0)**: Above market, avoid
+
+### Risk Assessment
+
+The engine automatically detects red flags:
+- Price too good to be true (>40% below market)
+- New seller with no transaction history
+- Suspicious payment methods (wire only, crypto)
+- Vague or stock photos
+- Contradictory information
+
+Risk levels: **LOW**, **MEDIUM**, **HIGH**, **CRITICAL**
+
+### Arbitrage Detection
+
+Calculate profit potential across platforms:
+- Compare prices on WhatsApp, Chrono24, eBay, etc.
+- Account for platform fees (Chrono24: 6.5%, eBay: 12.9%)
+- Include PayPal fees, shipping, and insurance
+- Calculate net profit and ROI percentage
+
+### Scoring API Endpoint
+
+**POST /score-deal**
+
+Score any watch deal with comprehensive analysis:
+
+```bash
+curl -X POST http://localhost:8000/score-deal \
+  -H "Content-Type: application/json" \
+  -d '{
+    "ref_number": "126610LN",
+    "listing_price": 16800,
+    "condition": "NIB",
+    "has_box": true,
+    "has_papers": true,
+    "is_full_set": true,
+    "seller_type": "VERIFIED_DEALER",
+    "seller_rating": 4.8,
+    "market_trend": "STABLE",
+    "comparable_count": 47
+  }'
+```
+
+**Response:**
+
+```json
+{
+  "status": "success",
+  "ref_number": "126610LN",
+  "listing_price": 16800,
+  "market_price": 21500,
+  "score": 265,
+  "tier": "PUSH",
+  "discount_percentage": 21.86,
+  "confidence": 94,
+  "breakdown": {
+    "base_score": 218,
+    "condition_bonus": 20,
+    "inclusions_bonus": 15,
+    "seller_bonus": 10,
+    "urgency_bonus": 0,
+    "market_trend_adjustment": 0,
+    "rarity_bonus": 0,
+    "risk_penalty": 0,
+    "final_score": 265
+  },
+  "explanation": "PUSH DEAL: 21.9% below market ($16,800 vs $21,500 market). NIB condition (+20), full set (+15), verified dealer (+10). Market stable. High confidence (47 recent comps).",
+  "risk_level": "LOW",
+  "risk_score": 0,
+  "red_flags": [],
+  "concerns": [],
+  "recommendations": ["Verified dealer - transaction should be safe"],
+  "timestamp": "2024-01-16T03:00:00"
+}
+```
+
+**Parameters:**
+
+Required:
+- `ref_number`: Watch reference (e.g., "126610LN")
+- `listing_price`: Asking price in USD
+
+Optional condition factors:
+- `condition`: NIB, UNWORN, EXCELLENT, GOOD, FAIR, POOR, UNKNOWN
+- `has_box`, `has_papers`, `has_warranty`, `is_full_set`: boolean
+
+Optional seller factors:
+- `seller_type`: VERIFIED_DEALER, ESTABLISHED_DEALER, PRIVATE_TRUSTED, PRIVATE_NEW, UNKNOWN
+- `seller_rating`: 0-5.0 rating
+- `seller_transaction_count`: number of transactions
+
+Optional signals:
+- `quick_sale`, `price_reduced`, `motivated_seller`: boolean urgency flags
+- `market_trend`: RISING, STABLE, FALLING, UNKNOWN
+- `comparable_count`: number of recent comparable sales
+- `rarity_score`: 0-30 for hard-to-find pieces
+
+Optional risk factors:
+- `vague_photos`, `new_seller_suspicious`, `payment_red_flags`, `contradictory_info`: boolean
+
+Optional arbitrage:
+- `calculate_arbitrage`: Dict of platform: price for arbitrage calculation
+
+### Example Scenarios
+
+**Urgent Deal (35% off, rare piece):**
+```json
+{
+  "ref_number": "5711/1A-010",
+  "listing_price": 70000,
+  "market_price": 108000,
+  "score": 420,
+  "tier": "URGENT",
+  "explanation": "URGENT DEAL: 35% below market. Rising market makes this exceptional. Act fast!"
+}
+```
+
+**High Risk (too cheap, suspicious seller):**
+```json
+{
+  "ref_number": "126610LN", 
+  "listing_price": 10000,
+  "market_price": 21500,
+  "score": 300,
+  "tier": "PUSH",
+  "risk_level": "CRITICAL",
+  "red_flags": ["Price is 53% below market - too good to be true", "Brand new seller with no transaction history"],
+  "recommendations": ["DO NOT PROCEED - High probability of fraud"]
+}
+```
+
 
 ## Installation
 
@@ -196,6 +358,12 @@ Parses a watch listing from text and/or image.
   "message": "Listing already seen in last 4 hours"
 }
 ```
+
+### POST `/score-deal`
+
+**NEW!** Advanced multi-factor deal scoring with risk assessment.
+
+See the [Advanced Deal Scoring Engine](#advanced-deal-scoring-engine) section above for full documentation and examples.
 
 ### GET `/stats`
 
