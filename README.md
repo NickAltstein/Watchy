@@ -384,3 +384,92 @@ MIT
 ## Support
 
 For issues, questions, or feature requests, please open a GitHub issue.
+
+---
+
+## 🚀 Production-Grade Enhanced Server
+
+A new production-grade implementation is available at `server-enhanced.js` with advanced features:
+
+### ✨ Key Enhancements
+
+1. **Redis Session Storage** - Multi-instance support with persistent sessions
+2. **Bull Queue Processing** - Reliable message queuing with dead letter queue
+3. **Winston Logging** - Structured logging with daily rotation
+4. **Prometheus Metrics** - `/metrics` endpoint for monitoring
+5. **Circuit Breaker** - Graceful degradation when API is down
+6. **Image Compression** - Automatic compression using Sharp
+7. **Health Checks** - `/health`, `/ready`, `/live` endpoints
+8. **Docker Support** - Full docker-compose setup with Redis
+9. **PM2 Ready** - Production process management
+
+### 📖 Quick Start (Enhanced Version)
+
+```bash
+# 1. Install dependencies (if not done)
+npm install
+
+# 2. Setup Redis (required for enhanced features)
+docker run -d -p 6379:6379 redis:7-alpine
+
+# Or use file-based auth (single instance):
+# Set USE_FILE_AUTH=true in .env
+
+# 3. Configure environment
+cp .env.example .env
+nano .env  # Add your OPENAI_API_KEY
+
+# 4. Start with PM2 (recommended)
+pm2 start ecosystem.config.js
+pm2 logs
+pm2 monit
+
+# Or start directly
+node server-enhanced.js
+
+# 5. Check health
+curl http://localhost:3000/health
+curl http://localhost:3000/metrics
+```
+
+### 📊 Monitoring
+
+Access these endpoints for monitoring:
+
+- **Health Check**: http://localhost:3000/health
+- **Metrics**: http://localhost:3000/metrics
+- **Stats**: http://localhost:3000/stats
+- **Readiness**: http://localhost:3000/ready
+- **Liveness**: http://localhost:3000/live
+
+### 🐳 Docker Deployment
+
+```bash
+# Start full stack (scraper + Redis + Python API)
+docker-compose up -d
+
+# View logs
+docker-compose logs -f scraper
+
+# Scale instances
+docker-compose up -d --scale scraper=3
+```
+
+### 📚 Documentation
+
+- **[DEPLOYMENT.md](DEPLOYMENT.md)** - Complete deployment guide
+- **[.env.example](.env.example)** - Configuration template
+- **[ecosystem.config.js](ecosystem.config.js)** - PM2 configuration
+- **[docker-compose.yml](docker-compose.yml)** - Docker setup
+
+### 🔄 Migration from Basic Server
+
+The enhanced server (`server-enhanced.js`) is fully backward compatible. To migrate:
+
+1. Copy `.env.example` to `.env` and configure
+2. Start Redis or set `USE_FILE_AUTH=true`
+3. Replace `npm start` with `node server-enhanced.js`
+4. Or use PM2: `pm2 start ecosystem.config.js`
+
+The basic `server.js` remains available for simple deployments.
+

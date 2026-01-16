@@ -93,8 +93,9 @@ class HealthServer {
     });
 
     this.app.get('/version', (req, res) => {
+      const pkg = require('../package.json');
       res.json({
-        version: '10.2.0',
+        version: pkg.version,
         node: process.version,
         uptime: process.uptime(),
       });
