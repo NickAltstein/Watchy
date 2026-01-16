@@ -33,3 +33,8 @@ asyncpg==0.29.0
 stripe==11.1.0
 # Additional async/utilities
 redis[hiredis]==5.0.1
+# Machine Learning
+scikit-learn==1.3.2
+joblib==1.3.2
+# WebSocket support
+websockets==12.0
