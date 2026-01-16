@@ -75,3 +75,15 @@ engine.log
 tmp/
 temp/
 *.tmp
+
+# Docker
+.env
+.env.production
+docker-compose.override.yml
+backups/
+
+# Docker volumes (if using local bind mounts)
+postgres_data/
+redis_data/
+grafana_data/
+prometheus_data/
