@@ -33,6 +33,11 @@ from deal_scorer import (
     MarketTrend,
     score_watch_deal,
 )
+from price_history import (
+    PriceHistoryAnalyzer,
+    PricePoint,
+    ConditionCategory,
+)
 
 # --- Custom Exceptions ---
 class WatchEngineError(Exception):
@@ -376,8 +381,29 @@ class ScoreDealResponse(BaseModel):
     timestamp: str
 
 
-# Initialize deal scorer
+class PriceHistoryResponse(BaseModel):
+    """Response model for price history endpoint"""
+    status: str
+    ref_number: str
+    days: int
+    data_points: List[Dict[str, Any]]
+    trend_analysis: Dict[str, Any]
+    bollinger_bands: Optional[Dict[str, List[float]]] = None
+    predictions: Optional[List[Dict[str, Any]]] = None
+    timestamp: str
+
+
+class CompareReferencesResponse(BaseModel):
+    """Response model for comparing multiple references"""
+    status: str
+    references: List[str]
+    comparison_data: Dict[str, Dict[str, Any]]
+    timestamp: str
+
+
+# Initialize deal scorer and price history analyzer
 deal_scorer = DealScorer()
+price_analyzer = PriceHistoryAnalyzer()
 
 # --- UTILS ---
 async def get_clean_ref(raw: Optional[str]) -> Optional[str]:
@@ -731,6 +757,208 @@ async def score_deal_endpoint(
     except Exception as e:
         logger.error(f"Error scoring deal: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to score deal: {str(e)}")
+
+@app.get("/price-history/{ref_number}", response_model=PriceHistoryResponse, tags=["analytics"])
+@limiter.limit("30/minute")
+async def get_price_history(
+    request: Request,
+    ref_number: str,
+    days: int = 90,
+    include_predictions: bool = True,
+    include_bollinger: bool = True
+):
+    """
+    Get price history and predictions for a watch reference.
+    
+    Args:
+        ref_number: Watch reference (e.g., "126610LN")
+        days: Number of days of history to retrieve (default: 90, max: 365)
+        include_predictions: Include 30-day price predictions
+        include_bollinger: Include Bollinger bands for volatility
+    
+    Returns:
+        Price history data with trend analysis and optional predictions
+    """
+    try:
+        # Validate and limit days
+        days = min(max(1, days), 365)
+        
+        # Clean reference number
+        ref_clean = ref_number.upper().replace(" ", "").strip()
+        
+        # Get historical data from database
+        cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
+        
+        async with (await db_manager.acquire()) as conn:
+            async with conn.execute(
+                """SELECT id, price_usd, deal_score, sentiment, timestamp, brand, model
+                   FROM trades 
+                   WHERE ref_number = ? AND timestamp > ?
+                   ORDER BY timestamp ASC""",
+                (ref_clean, cutoff_date)
+            ) as cursor:
+                rows = await cursor.fetchall()
+        
+        if not rows:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No price history found for reference {ref_number}"
+            )
+        
+        # Convert to PricePoint objects
+        price_points = []
+        for row in rows:
+            # Determine condition category from brand/model or default to UNKNOWN
+            condition = "UNKNOWN"  # We don't store condition in trades table yet
+            
+            price_points.append(PricePoint(
+                timestamp=row[4],
+                price=row[1],
+                deal_score=row[2],
+                condition=condition,
+                seller_type="UNKNOWN",  # Not stored yet
+                has_box=False,  # Not stored yet
+                has_papers=False,  # Not stored yet
+                sentiment=row[3],
+                trade_id=row[0]
+            ))
+        
+        # Analyze trend
+        trend_analysis = price_analyzer.analyze_history(price_points)
+        
+        # Calculate Bollinger bands if requested
+        bollinger_bands = None
+        if include_bollinger and len(price_points) >= 20:
+            prices = [p.price for p in price_points]
+            middle, upper, lower = price_analyzer.calculate_bollinger_bands(prices)
+            bollinger_bands = {
+                "middle": [round(v, 2) for v in middle],
+                "upper": [round(v, 2) for v in upper],
+                "lower": [round(v, 2) for v in lower]
+            }
+        
+        # Generate predictions if requested
+        predictions = None
+        if include_predictions and len(price_points) >= 3:
+            prices = [p.price for p in price_points]
+            timestamps = [datetime.fromisoformat(p.timestamp.replace('Z', '+00:00')) for p in price_points]
+            
+            pred_list = price_analyzer.predict_prices(prices, timestamps, days_ahead=30)
+            predictions = [p.to_dict() for p in pred_list]
+        
+        # Build response
+        response = PriceHistoryResponse(
+            status="success",
+            ref_number=ref_clean,
+            days=days,
+            data_points=[p.to_dict() for p in price_points],
+            trend_analysis=trend_analysis.to_dict(),
+            bollinger_bands=bollinger_bands,
+            predictions=predictions,
+            timestamp=datetime.now().isoformat()
+        )
+        
+        logger.info(f"Price history retrieved: {ref_clean}, {len(price_points)} points")
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error getting price history: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get price history: {str(e)}")
+
+@app.get("/compare-references", response_model=CompareReferencesResponse, tags=["analytics"])
+@limiter.limit("20/minute")
+async def compare_references(
+    request: Request,
+    refs: str,  # Comma-separated list of references
+    days: int = 90
+):
+    """
+    Compare price history for multiple watch references.
+    
+    Args:
+        refs: Comma-separated list of references (e.g., "126610LN,116500LN")
+        days: Number of days of history to retrieve (default: 90, max: 365)
+    
+    Returns:
+        Comparison data for multiple references
+    """
+    try:
+        # Parse and validate references
+        ref_list = [r.strip().upper().replace(" ", "") for r in refs.split(",")]
+        ref_list = [r for r in ref_list if r]  # Remove empty strings
+        
+        if not ref_list:
+            raise HTTPException(status_code=400, detail="No valid references provided")
+        
+        if len(ref_list) > 5:
+            raise HTTPException(status_code=400, detail="Maximum 5 references can be compared")
+        
+        # Validate and limit days
+        days = min(max(1, days), 365)
+        cutoff_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
+        
+        # Fetch data for each reference
+        comparison_data = {}
+        
+        async with (await db_manager.acquire()) as conn:
+            for ref in ref_list:
+                async with conn.execute(
+                    """SELECT id, price_usd, deal_score, sentiment, timestamp
+                       FROM trades 
+                       WHERE ref_number = ? AND timestamp > ?
+                       ORDER BY timestamp ASC""",
+                    (ref, cutoff_date)
+                ) as cursor:
+                    rows = await cursor.fetchall()
+                
+                if rows:
+                    price_points = []
+                    for row in rows:
+                        price_points.append({
+                            "trade_id": row[0],
+                            "price": row[1],
+                            "deal_score": row[2],
+                            "sentiment": row[3],
+                            "timestamp": row[4]
+                        })
+                    
+                    # Calculate basic stats
+                    prices = [p["price"] for p in price_points]
+                    
+                    comparison_data[ref] = {
+                        "data_points": price_points,
+                        "count": len(price_points),
+                        "avg_price": round(sum(prices) / len(prices), 2) if prices else 0,
+                        "min_price": min(prices) if prices else 0,
+                        "max_price": max(prices) if prices else 0,
+                        "current_price": prices[-1] if prices else 0
+                    }
+        
+        if not comparison_data:
+            raise HTTPException(
+                status_code=404,
+                detail="No price history found for any of the provided references"
+            )
+        
+        response = CompareReferencesResponse(
+            status="success",
+            references=list(comparison_data.keys()),
+            comparison_data=comparison_data,
+            timestamp=datetime.now().isoformat()
+        )
+        
+        logger.info(f"Comparison retrieved for {len(comparison_data)} references")
+        
+        return response
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error comparing references: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to compare references: {str(e)}")
 
 @app.get("/health", response_model=HealthResponse, tags=["monitoring"])
 async def health():
