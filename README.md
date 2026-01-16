@@ -6,7 +6,7 @@
 [![CI/CD Pipeline](https://github.com/NickAiNYC/Watchy/workflows/CI/CD%20Pipeline/badge.svg)](https://github.com/NickAiNYC/Watchy/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Node.js 18+](https://img.shields.io/badge/node-18+-green.svg)](https://nodejs.org/)
+[![Node.js 20+](https://img.shields.io/badge/node-20+-green.svg)](https://nodejs.org/)
 
 ---
 
@@ -191,7 +191,7 @@ That's it! The system will now monitor your WhatsApp groups and display deals on
 
 ### Prerequisites
 
-- **Node.js** 18.0.0 or higher
+- **Node.js** 20.0.0 or higher
 - **Python** 3.10 or higher
 - **npm** 9.0.0 or higher
 - **pip** for Python package management
@@ -254,7 +254,7 @@ cp .env.template .env
 
 ```bash
 # Check Node.js installation
-node --version  # Should be >= 18.0.0
+node --version  # Should be >= 20.0.0
 npm --version   # Should be >= 9.0.0
 
 # Check Python installation  
