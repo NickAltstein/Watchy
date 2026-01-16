@@ -27,6 +27,7 @@ WhatsApp Groups
 ✅ **Automatic deduplication** - ignores duplicate listings within 4 hours  
 ✅ **Deal scoring** - compares prices against reference targets  
 ✅ **Advanced multi-factor scoring engine** - comprehensive analysis with risk assessment  
+✅ **Interactive price history charts** - 90-day history with ML predictions  
 ✅ **Arbitrage detection** - identify cross-platform profit opportunities  
 ✅ **SQLite storage** - saves all WTS listings  
 ✅ **Multi-group support** - filter specific groups or monitor all  
@@ -191,6 +192,101 @@ Optional arbitrage:
   "recommendations": ["DO NOT PROCEED - High probability of fraud"]
 }
 ```
+
+## Interactive Price History Chart
+
+Visualize price trends and predictions with an interactive chart interface.
+
+### Features
+
+- **90-Day Historical Data**: View actual trade prices over the last 90 days
+- **ML Price Predictions**: 30-day forecast with confidence intervals
+- **Trend Analysis**: Automatic detection of up/down/stable trends with strength metrics
+- **Bollinger Bands**: Volatility visualization with upper/lower bounds
+- **Multi-Reference Comparison**: Compare up to 5 references on the same chart
+- **Interactive Controls**: Zoom, pan, hover tooltips, and export to PNG
+- **Real-Time Stats**: Current price, average, min/max, 30-day change
+
+### Accessing the Chart
+
+Navigate to `/price-chart.html` or click **Price_Charts** in the dashboard header.
+
+### API Endpoints
+
+**Get Price History:**
+```bash
+GET /price-history/{ref_number}?days=90&include_predictions=true&include_bollinger=true
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "ref_number": "126610LN",
+  "days": 90,
+  "data_points": [
+    {
+      "timestamp": "2024-01-01T00:00:00",
+      "price": 21500,
+      "deal_score": 265,
+      "sentiment": "WTS"
+    }
+  ],
+  "trend_analysis": {
+    "trend_direction": "up",
+    "trend_strength": 0.85,
+    "volatility": 450.25,
+    "avg_price": 21250.50,
+    "price_change_30d": 3.2,
+    "price_change_90d": 8.5
+  },
+  "bollinger_bands": {
+    "middle": [21200, 21250, 21300],
+    "upper": [22100, 22150, 22200],
+    "lower": [20300, 20350, 20400]
+  },
+  "predictions": [
+    {
+      "date": "2024-04-01",
+      "predicted_price": 22000,
+      "lower_bound": 21000,
+      "upper_bound": 23000,
+      "confidence": 0.85
+    }
+  ]
+}
+```
+
+**Compare References:**
+```bash
+GET /compare-references?refs=126610LN,116500LN,5711/1A-010&days=90
+```
+
+### Chart Usage
+
+1. **Add Reference**: Enter a reference number (e.g., "126610LN") and click "Add Reference"
+2. **Select Timeframe**: Choose from 30, 60, 90, 180, or 365 days
+3. **Toggle Features**: Enable/disable predictions and Bollinger bands
+4. **View Multiple**: Add up to 5 references to compare trends
+5. **Export**: Click "Export PNG" to save the chart as an image
+6. **Interact**: Hover over data points for details, click legend to toggle series
+
+### Prediction Disclaimer
+
+⚠️ Price predictions are based on historical data and simple statistical models (linear regression with confidence intervals). They are for **informational purposes only** and should not be used as the sole basis for trading decisions. Actual market prices may vary significantly. Confidence decreases further into the future.
+
+### Trend Analysis
+
+The system automatically analyzes price trends using:
+- **Linear Regression**: Calculates slope and direction
+- **R-Squared**: Measures trend strength (0-1)
+- **Volatility**: Standard deviation of prices
+- **Bollinger Bands**: Shows normal price range (2 standard deviations)
+
+**Trend Classifications:**
+- **Up**: Price rising >0.1% per day
+- **Down**: Price falling >0.1% per day
+- **Stable**: Price change within ±0.1% per day
 
 
 ## Installation
@@ -364,6 +460,27 @@ Parses a watch listing from text and/or image.
 **NEW!** Advanced multi-factor deal scoring with risk assessment.
 
 See the [Advanced Deal Scoring Engine](#advanced-deal-scoring-engine) section above for full documentation and examples.
+
+### GET `/price-history/{ref_number}`
+
+**NEW!** Get price history and ML predictions for a watch reference.
+
+Query Parameters:
+- `days`: Number of days (default: 90, max: 365)
+- `include_predictions`: Include 30-day forecast (default: true)
+- `include_bollinger`: Include Bollinger bands (default: true)
+
+See the [Interactive Price History Chart](#interactive-price-history-chart) section above for full documentation.
+
+### GET `/compare-references`
+
+**NEW!** Compare price history for multiple references.
+
+Query Parameters:
+- `refs`: Comma-separated list (e.g., "126610LN,116500LN")
+- `days`: Number of days (default: 90, max: 365)
+
+Returns comparison data with stats for each reference.
 
 ### GET `/stats`
 

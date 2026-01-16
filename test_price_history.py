@@ -3,6 +3,7 @@ Tests for price history and prediction functionality.
 """
 
 import pytest
+import random
 from datetime import datetime, timedelta
 from price_history import (
     PriceHistoryAnalyzer,
@@ -255,7 +256,6 @@ class TestPriceHistoryAnalyzer:
     
     def test_volatile_price_prediction(self):
         """Test prediction for volatile prices"""
-        import random
         random.seed(42)
         
         prices = [10000 + random.randint(-1000, 1000) for _ in range(30)]

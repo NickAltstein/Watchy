@@ -37,6 +37,7 @@ from price_history import (
     PriceHistoryAnalyzer,
     PricePoint,
     ConditionCategory,
+    MAX_REFERENCES_COMPARISON,
 )
 
 # --- Custom Exceptions ---
@@ -841,7 +842,16 @@ async def get_price_history(
         predictions = None
         if include_predictions and len(price_points) >= 3:
             prices = [p.price for p in price_points]
-            timestamps = [datetime.fromisoformat(p.timestamp.replace('Z', '+00:00')) for p in price_points]
+            # Parse timestamps safely
+            timestamps = []
+            for p in price_points:
+                ts_str = p.timestamp
+                if ts_str.endswith('Z'):
+                    ts_str = ts_str[:-1] + '+00:00'
+                try:
+                    timestamps.append(datetime.fromisoformat(ts_str))
+                except ValueError:
+                    timestamps.append(datetime.fromisoformat(ts_str.split('+')[0].split('Z')[0]))
             
             pred_list = price_analyzer.predict_prices(prices, timestamps, days_ahead=30)
             predictions = [p.to_dict() for p in pred_list]
@@ -893,8 +903,11 @@ async def compare_references(
         if not ref_list:
             raise HTTPException(status_code=400, detail="No valid references provided")
         
-        if len(ref_list) > 5:
-            raise HTTPException(status_code=400, detail="Maximum 5 references can be compared")
+        if len(ref_list) > MAX_REFERENCES_COMPARISON:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Maximum {MAX_REFERENCES_COMPARISON} references can be compared"
+            )
         
         # Validate and limit days
         days = min(max(1, days), 365)

@@ -219,6 +219,7 @@
                 chartData: null,
                 chart: null,
                 referenceStats: {},
+                maxReferences: 5,  // Max references - should match backend MAX_REFERENCES_COMPARISON
 
                 async addReference() {
                     const ref = this.refInput.trim().toUpperCase();
@@ -230,8 +231,8 @@
                         return;
                     }
 
-                    if (this.references.length >= 5) {
-                        this.error = 'Maximum 5 references can be compared';
+                    if (this.references.length >= this.maxReferences) {
+                        this.error = `Maximum ${this.maxReferences} references can be compared`;
                         setTimeout(() => this.error = null, 3000);
                         return;
                     }

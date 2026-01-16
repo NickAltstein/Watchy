@@ -14,6 +14,14 @@ from enum import Enum
 
 logger = logging.getLogger("watch-engine.price_history")
 
+# Configuration constants
+MIN_CONFIDENCE = 0.3
+MAX_CONFIDENCE = 0.95
+MIN_INTERVAL_WIDTH = 100  # Minimum price interval width in USD
+INTERVAL_GROWTH_FACTOR = 10  # Days factor for interval growth
+Z_SCORE_95_PERCENT = 1.96  # Z-score for 95% confidence interval
+MAX_REFERENCES_COMPARISON = 5  # Maximum references for comparison
+
 
 class ConditionCategory(str, Enum):
     """Watch condition categories for color coding"""
@@ -249,7 +257,7 @@ class PriceHistoryAnalyzer:
         ss_tot = np.sum((prices - y_mean) ** 2)
         r_squared = 1 - (ss_res / ss_tot) if ss_tot > 0 else 0
         
-        base_confidence = max(0.3, min(0.95, r_squared))
+        base_confidence = max(MIN_CONFIDENCE, min(MAX_CONFIDENCE, r_squared))
         data_confidence = min(1.0, len(historical_prices) / 30)  # More data = higher confidence
         
         for day in range(1, days_ahead + 1):
@@ -265,14 +273,14 @@ class PriceHistoryAnalyzer:
             
             # Calculate confidence interval (grows with time)
             # Use minimum interval width to ensure bounds are different
-            interval_width = max(100, rmse * (1 + day / 10))  # Wider interval for further predictions
+            interval_width = max(MIN_INTERVAL_WIDTH, rmse * (1 + day / INTERVAL_GROWTH_FACTOR))
             
-            lower_bound = max(0, int(predicted_price - interval_width * 1.96))  # 95% CI
-            upper_bound = int(predicted_price + interval_width * 1.96)
+            lower_bound = max(0, int(predicted_price - interval_width * Z_SCORE_95_PERCENT))
+            upper_bound = int(predicted_price + interval_width * Z_SCORE_95_PERCENT)
             
             # Ensure upper bound is strictly greater than lower bound
             if upper_bound <= lower_bound:
-                upper_bound = lower_bound + max(100, int(predicted_price * 0.01))
+                upper_bound = lower_bound + max(MIN_INTERVAL_WIDTH, int(predicted_price * 0.01))
             
             predictions.append(PricePrediction(
                 date=future_date.strftime("%Y-%m-%d"),
@@ -309,7 +317,23 @@ class PriceHistoryAnalyzer:
         
         # Extract prices and timestamps
         prices = [p.price for p in price_points]
-        timestamps = [datetime.fromisoformat(p.timestamp.replace('Z', '+00:00')) for p in price_points]
+        # Parse timestamps safely - handle both with and without 'Z' suffix
+        timestamps = []
+        for p in price_points:
+            ts_str = p.timestamp
+            # Remove 'Z' if present and add timezone
+            if ts_str.endswith('Z'):
+                ts_str = ts_str[:-1] + '+00:00'
+            # Try to parse, fallback to datetime.fromisoformat
+            try:
+                timestamps.append(datetime.fromisoformat(ts_str))
+            except ValueError:
+                # Fallback: try without timezone
+                try:
+                    timestamps.append(datetime.fromisoformat(ts_str.split('+')[0].split('Z')[0]))
+                except ValueError:
+                    logger.warning(f"Failed to parse timestamp: {p.timestamp}")
+                    timestamps.append(datetime.now())
         
         # Sort by timestamp
         sorted_data = sorted(zip(timestamps, prices), key=lambda x: x[0])
@@ -341,15 +365,15 @@ class PriceHistoryAnalyzer:
             if ts >= date_90d_ago and price_90d is None:
                 price_90d = prices[i]
         
-        # Calculate percentage changes
+        # Calculate percentage changes with division by zero protection
         current_price = prices[-1] if prices else 0
         
-        if price_30d:
+        if price_30d and price_30d > 0:
             price_change_30d = ((current_price - price_30d) / price_30d) * 100
         else:
             price_change_30d = 0.0
         
-        if price_90d:
+        if price_90d and price_90d > 0:
             price_change_90d = ((current_price - price_90d) / price_90d) * 100
         else:
             price_change_90d = 0.0
