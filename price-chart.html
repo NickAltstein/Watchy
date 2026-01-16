@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Price History Chart // WATCH ENGINE</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            background-color: #000; 
+            color: #E5E7EB; 
+            font-family: 'Inter', sans-serif; 
+            -webkit-font-smoothing: antialiased; 
+        }
+        .mono { font-family: 'JetBrains Mono', monospace; }
+        .chart-container { 
+            position: relative; 
+            height: 500px; 
+            background: #0A0A0A;
+            border: 1px solid #1A1A1A;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .stats-card {
+            background: #0A0A0A;
+            border: 1px solid #1A1A1A;
+            border-radius: 8px;
+            padding: 16px;
+        }
+        .btn-primary {
+            background: #3B82F6;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background: #2563EB;
+        }
+        .btn-secondary {
+            background: #1A1A1A;
+            color: #9CA3AF;
+            padding: 8px 16px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            transition: all 0.2s;
+            border: 1px solid #374151;
+        }
+        .btn-secondary:hover {
+            background: #374151;
+            color: white;
+        }
+        .ref-chip {
+            background: #1E3A8A;
+            color: #93C5FD;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 11px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .ref-chip button {
+            color: #93C5FD;
+            font-weight: bold;
+        }
+        .loading {
+            border: 3px solid #1A1A1A;
+            border-top: 3px solid #3B82F6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-6" x-data="chartApp()">
+    
+    <!-- Header -->
+    <header class="mb-8">
+        <div class="flex items-center justify-between">
+            <div>
+                <h1 class="text-2xl font-bold mono text-white mb-2">PRICE HISTORY TERMINAL</h1>
+                <p class="text-sm text-gray-400 uppercase tracking-wide">Interactive Price Analysis & Predictions</p>
+            </div>
+            <a href="/dash.html" class="btn-secondary">← Back to Dashboard</a>
+        </div>
+    </header>
+
+    <!-- Reference Input -->
+    <div class="mb-6 grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+        <div class="md:col-span-3">
+            <label class="block text-xs text-gray-400 mb-2 uppercase tracking-wide">Reference Number</label>
+            <input 
+                type="text" 
+                x-model="refInput"
+                @keyup.enter="addReference()"
+                placeholder="e.g., 126610LN"
+                class="w-full bg-black border border-gray-700 text-white px-4 py-2 rounded focus:border-blue-500 focus:outline-none mono"
+            >
+        </div>
+        <div class="md:col-span-2">
+            <label class="block text-xs text-gray-400 mb-2 uppercase tracking-wide">Days of History</label>
+            <select x-model="days" class="w-full bg-black border border-gray-700 text-white px-4 py-2 rounded focus:border-blue-500 focus:outline-none">
+                <option value="30">30 Days</option>
+                <option value="60">60 Days</option>
+                <option value="90" selected>90 Days</option>
+                <option value="180">180 Days</option>
+                <option value="365">1 Year</option>
+            </select>
+        </div>
+        <div class="md:col-span-3 flex gap-2 items-center">
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" x-model="showPredictions" class="w-4 h-4">
+                <span class="text-xs text-gray-400 uppercase tracking-wide">Predictions</span>
+            </label>
+            <label class="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" x-model="showBollinger" class="w-4 h-4">
+                <span class="text-xs text-gray-400 uppercase tracking-wide">Bollinger</span>
+            </label>
+        </div>
+        <div class="md:col-span-4 flex gap-2">
+            <button @click="addReference()" class="btn-primary flex-1">Add Reference</button>
+            <button @click="exportChart()" class="btn-secondary">Export PNG</button>
+        </div>
+    </div>
+
+    <!-- Active References -->
+    <div class="mb-6" x-show="references.length > 0">
+        <div class="flex flex-wrap gap-2">
+            <template x-for="ref in references" :key="ref">
+                <div class="ref-chip">
+                    <span x-text="ref"></span>
+                    <button @click="removeReference(ref)">×</button>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div x-show="loading" class="flex items-center justify-center py-20">
+        <div class="loading"></div>
+    </div>
+
+    <!-- Error Message -->
+    <div x-show="error" class="mb-6 bg-red-900/20 border border-red-500 text-red-400 px-4 py-3 rounded">
+        <span x-text="error"></span>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="chart-container mb-6" x-show="!loading && chartData">
+        <canvas id="priceChart"></canvas>
+    </div>
+
+    <!-- Stats Grid -->
+    <div x-show="!loading && chartData" class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <template x-for="(stats, ref) in referenceStats" :key="ref">
+            <div class="stats-card">
+                <h3 class="text-xs text-gray-400 uppercase tracking-wide mb-3" x-text="ref"></h3>
+                <div class="space-y-2">
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Current:</span>
+                        <span class="text-white mono" x-text="'$' + stats.current_price?.toLocaleString()"></span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Avg:</span>
+                        <span class="text-white mono" x-text="'$' + stats.avg_price?.toLocaleString()"></span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Range:</span>
+                        <span class="text-white mono text-xs" x-text="'$' + stats.min_price?.toLocaleString() + ' - $' + stats.max_price?.toLocaleString()"></span>
+                    </div>
+                    <div class="flex justify-between text-sm">
+                        <span class="text-gray-500">Trend:</span>
+                        <span class="mono text-xs" :class="stats.trend_direction === 'up' ? 'text-green-400' : stats.trend_direction === 'down' ? 'text-red-400' : 'text-gray-400'" x-text="stats.trend_direction?.toUpperCase()"></span>
+                    </div>
+                    <div class="flex justify-between text-sm" x-show="stats.price_change_30d">
+                        <span class="text-gray-500">30d Change:</span>
+                        <span class="mono text-xs" :class="stats.price_change_30d > 0 ? 'text-green-400' : 'text-red-400'" x-text="stats.price_change_30d?.toFixed(1) + '%'"></span>
+                    </div>
+                </div>
+            </div>
+        </template>
+    </div>
+
+    <!-- Prediction Disclaimer -->
+    <div x-show="showPredictions && !loading" class="bg-yellow-900/20 border border-yellow-700 text-yellow-400 px-4 py-3 rounded text-sm">
+        <strong>⚠️ Prediction Disclaimer:</strong> Price predictions are based on historical data and simple statistical models. 
+        They are for informational purposes only and should not be used as the sole basis for trading decisions. 
+        Actual market prices may vary significantly. Confidence decreases further into the future.
+    </div>
+
+    <script>
+        function chartApp() {
+            return {
+                references: [],
+                refInput: '',
+                days: 90,
+                showPredictions: true,
+                showBollinger: true,
+                loading: false,
+                error: null,
+                chartData: null,
+                chart: null,
+                referenceStats: {},
+                maxReferences: 5,  // Max references - should match backend MAX_REFERENCES_COMPARISON
+
+                async addReference() {
+                    const ref = this.refInput.trim().toUpperCase();
+                    if (!ref) return;
+                    
+                    if (this.references.includes(ref)) {
+                        this.error = 'Reference already added';
+                        setTimeout(() => this.error = null, 3000);
+                        return;
+                    }
+
+                    if (this.references.length >= this.maxReferences) {
+                        this.error = `Maximum ${this.maxReferences} references can be compared`;
+                        setTimeout(() => this.error = null, 3000);
+                        return;
+                    }
+
+                    this.references.push(ref);
+                    this.refInput = '';
+                    await this.loadData();
+                },
+
+                removeReference(ref) {
+                    this.references = this.references.filter(r => r !== ref);
+                    if (this.references.length === 0) {
+                        this.chartData = null;
+                        if (this.chart) {
+                            this.chart.destroy();
+                            this.chart = null;
+                        }
+                    } else {
+                        this.loadData();
+                    }
+                },
+
+                async loadData() {
+                    if (this.references.length === 0) return;
+
+                    this.loading = true;
+                    this.error = null;
+
+                    try {
+                        const datasets = [];
+                        const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
+                        
+                        for (let i = 0; i < this.references.length; i++) {
+                            const ref = this.references[i];
+                            const color = colors[i % colors.length];
+
+                            const response = await fetch(
+                                `/price-history/${ref}?days=${this.days}&include_predictions=${this.showPredictions}&include_bollinger=${this.showBollinger}`
+                            );
+
+                            if (!response.ok) {
+                                const errorData = await response.json();
+                                throw new Error(errorData.detail || 'Failed to load data');
+                            }
+
+                            const data = await response.json();
+
+                            // Historical data points
+                            const historicalData = data.data_points.map(point => ({
+                                x: new Date(point.timestamp),
+                                y: point.price
+                            }));
+
+                            datasets.push({
+                                label: ref,
+                                data: historicalData,
+                                borderColor: color,
+                                backgroundColor: color + '20',
+                                borderWidth: 2,
+                                pointRadius: 4,
+                                pointHoverRadius: 6,
+                                tension: 0.1,
+                                fill: false
+                            });
+
+                            // Predictions
+                            if (this.showPredictions && data.predictions) {
+                                const predictionData = data.predictions.map(pred => ({
+                                    x: new Date(pred.date),
+                                    y: pred.predicted_price
+                                }));
+
+                                datasets.push({
+                                    label: `${ref} Prediction`,
+                                    data: predictionData,
+                                    borderColor: color,
+                                    backgroundColor: color + '10',
+                                    borderWidth: 2,
+                                    borderDash: [5, 5],
+                                    pointRadius: 3,
+                                    tension: 0.1,
+                                    fill: false
+                                });
+
+                                // Confidence interval
+                                const upperBound = data.predictions.map(pred => ({
+                                    x: new Date(pred.date),
+                                    y: pred.upper_bound
+                                }));
+                                const lowerBound = data.predictions.map(pred => ({
+                                    x: new Date(pred.date),
+                                    y: pred.lower_bound
+                                }));
+
+                                datasets.push({
+                                    label: `${ref} Confidence`,
+                                    data: upperBound,
+                                    borderColor: color + '40',
+                                    backgroundColor: color + '10',
+                                    borderWidth: 1,
+                                    pointRadius: 0,
+                                    fill: '+1',
+                                    tension: 0.2
+                                });
+
+                                datasets.push({
+                                    label: `${ref} Lower`,
+                                    data: lowerBound,
+                                    borderColor: color + '40',
+                                    backgroundColor: color + '10',
+                                    borderWidth: 1,
+                                    pointRadius: 0,
+                                    tension: 0.2
+                                });
+                            }
+
+                            // Store stats
+                            this.referenceStats[ref] = {
+                                current_price: data.data_points[data.data_points.length - 1]?.price || 0,
+                                avg_price: data.trend_analysis.avg_price,
+                                min_price: Math.min(...data.data_points.map(p => p.price)),
+                                max_price: Math.max(...data.data_points.map(p => p.price)),
+                                trend_direction: data.trend_analysis.trend_direction,
+                                price_change_30d: data.trend_analysis.price_change_30d
+                            };
+                        }
+
+                        this.chartData = datasets;
+                        this.renderChart();
+
+                    } catch (err) {
+                        this.error = err.message;
+                        console.error('Error loading data:', err);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+
+                renderChart() {
+                    const ctx = document.getElementById('priceChart');
+                    if (!ctx) return;
+
+                    if (this.chart) {
+                        this.chart.destroy();
+                    }
+
+                    this.chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            datasets: this.chartData
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'nearest',
+                                axis: 'x',
+                                intersect: false
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'top',
+                                    labels: {
+                                        color: '#9CA3AF',
+                                        font: {
+                                            family: 'Inter',
+                                            size: 11
+                                        },
+                                        filter: function(item) {
+                                            // Hide confidence bound labels
+                                            return !item.text.includes('Confidence') && !item.text.includes('Lower');
+                                        }
+                                    }
+                                },
+                                tooltip: {
+                                    backgroundColor: '#1A1A1A',
+                                    titleColor: '#FFFFFF',
+                                    bodyColor: '#9CA3AF',
+                                    borderColor: '#374151',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    displayColors: true,
+                                    callbacks: {
+                                        label: function(context) {
+                                            let label = context.dataset.label || '';
+                                            if (label) {
+                                                label += ': ';
+                                            }
+                                            label += '$' + context.parsed.y.toLocaleString();
+                                            return label;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    type: 'time',
+                                    time: {
+                                        unit: 'day',
+                                        displayFormats: {
+                                            day: 'MMM d'
+                                        }
+                                    },
+                                    grid: {
+                                        color: '#1A1A1A'
+                                    },
+                                    ticks: {
+                                        color: '#6B7280',
+                                        font: {
+                                            family: 'JetBrains Mono',
+                                            size: 10
+                                        }
+                                    }
+                                },
+                                y: {
+                                    beginAtZero: false,
+                                    grid: {
+                                        color: '#1A1A1A'
+                                    },
+                                    ticks: {
+                                        color: '#6B7280',
+                                        font: {
+                                            family: 'JetBrains Mono',
+                                            size: 10
+                                        },
+                                        callback: function(value) {
+                                            return '$' + value.toLocaleString();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                },
+
+                exportChart() {
+                    if (!this.chart) return;
+                    
+                    const link = document.createElement('a');
+                    link.download = `price-history-${this.references.join('-')}-${Date.now()}.png`;
+                    link.href = this.chart.toBase64Image();
+                    link.click();
+                },
+
+                init() {
+                    // Check for URL parameters
+                    const params = new URLSearchParams(window.location.search);
+                    const ref = params.get('ref');
+                    if (ref) {
+                        this.refInput = ref;
+                        this.addReference();
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>
