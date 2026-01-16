@@ -26,3 +26,10 @@ python-jose[cryptography]==3.4.0
 pyotp==2.9.0
 qrcode[pil]==7.4.2
 email-validator==2.1.1
+# Database dependencies (PostgreSQL + extensions)
+psycopg2-binary==2.9.9
+asyncpg==0.29.0
+# Payment processing
+stripe==7.8.0
+# Additional async/utilities
+redis[hiredis]==5.0.1
