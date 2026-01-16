@@ -18,8 +18,18 @@ class QueueManager {
       defaultJobOptions: {
         attempts: 3,
         backoff: { type: 'exponential', delay: 2000 },
-        removeOnComplete: 100,
-        removeOnFail: 500,
+        removeOnComplete: {
+          age: 24 * 3600, // 24 hours
+          count: 1000,
+        },
+        removeOnFail: {
+          age: 7 * 24 * 3600, // 7 days
+          count: 5000,
+        },
+      },
+      limiter: {
+        max: 10000, // Max 10,000 jobs
+        duration: 1000,
       },
       ...options,
     };
@@ -103,8 +113,41 @@ class QueueManager {
   async addJob(queueName, data, options = {}) {
     const queue = this.getQueue(queueName);
     const job = await queue.add(data, options);
-    logger.debug(`Job ${job.id} added to ${queueName}`);
+    logger.debug(`Job ${job.id} added to ${queueName} with priority ${options.priority || 'default'}`);
     return job;
+  }
+
+  /**
+   * Add multiple jobs as a batch
+   */
+  async addBatch(queueName, jobs) {
+    const queue = this.getQueue(queueName);
+    const addedJobs = await queue.addBulk(jobs);
+    logger.info(`Added batch of ${jobs.length} jobs to ${queueName}`);
+    return addedJobs;
+  }
+
+  /**
+   * Get queue depth (waiting + delayed jobs)
+   */
+  async getQueueDepth(queueName) {
+    const queue = this.queues.get(queueName);
+    if (!queue) return 0;
+
+    const [waiting, delayed] = await Promise.all([
+      queue.getWaitingCount(),
+      queue.getDelayedCount(),
+    ]);
+
+    return waiting + delayed;
+  }
+
+  /**
+   * Check if queue is over capacity
+   */
+  async isQueueOverCapacity(queueName, threshold = 5000) {
+    const depth = await this.getQueueDepth(queueName);
+    return depth > threshold;
   }
 
   async getQueueStats(queueName) {
