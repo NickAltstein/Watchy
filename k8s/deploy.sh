@@ -89,20 +89,20 @@ deploy_infrastructure() {
     log_info "Deploying infrastructure..."
     
     # Create namespace
-    kubectl apply -f k8s/namespace.yaml
+    kubectl apply -f namespace.yaml
     
     # Deploy configuration
-    kubectl apply -f k8s/configmap.yaml
+    kubectl apply -f configmap.yaml
     
     # Create secrets if needed
     create_secrets
     
     # Deploy storage
-    kubectl apply -f k8s/pvc.yaml
+    kubectl apply -f pvc.yaml
     
     # Deploy databases
-    kubectl apply -f k8s/postgres-deployment.yaml
-    kubectl apply -f k8s/redis-deployment.yaml
+    kubectl apply -f postgres-deployment.yaml
+    kubectl apply -f redis-deployment.yaml
     
     log_info "Waiting for databases to be ready..."
     kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=postgres -n $NAMESPACE --timeout=300s
@@ -115,12 +115,12 @@ deploy_application() {
     log_info "Deploying application..."
     
     # Deploy application services
-    kubectl apply -f k8s/backend-deployment.yaml
-    kubectl apply -f k8s/frontend-deployment.yaml
-    kubectl apply -f k8s/celery-deployment.yaml
+    kubectl apply -f backend-deployment.yaml
+    kubectl apply -f frontend-deployment.yaml
+    kubectl apply -f celery-deployment.yaml
     
     # Deploy nginx
-    kubectl apply -f k8s/nginx-deployment.yaml
+    kubectl apply -f nginx-deployment.yaml
     
     log_info "Waiting for application to be ready..."
     kubectl wait --for=condition=ready pod -l app.kubernetes.io/component=backend -n $NAMESPACE --timeout=300s
@@ -132,8 +132,8 @@ deploy_application() {
 deploy_monitoring() {
     log_info "Deploying monitoring..."
     
-    kubectl apply -f k8s/prometheus-deployment.yaml
-    kubectl apply -f k8s/grafana-deployment.yaml
+    kubectl apply -f prometheus-deployment.yaml
+    kubectl apply -f grafana-deployment.yaml
     
     log_info "Monitoring deployed ✓"
 }
@@ -141,8 +141,8 @@ deploy_monitoring() {
 deploy_networking() {
     log_info "Deploying networking..."
     
-    kubectl apply -f k8s/ingress.yaml
-    kubectl apply -f k8s/network-policy.yaml
+    kubectl apply -f ingress.yaml
+    kubectl apply -f network-policy.yaml
     
     log_info "Networking deployed ✓"
 }
@@ -150,7 +150,7 @@ deploy_networking() {
 deploy_policies() {
     log_info "Deploying policies..."
     
-    kubectl apply -f k8s/pod-disruption-budget.yaml
+    kubectl apply -f pod-disruption-budget.yaml
     
     log_info "Policies deployed ✓"
 }

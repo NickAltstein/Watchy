@@ -12,7 +12,7 @@ spec:
   resources:
     requests:
       storage: 50Gi
-  storageClassName: fast-ssd  # Change to your storage class
+  storageClassName: standard  # Use gp2, fast-ssd, or your storage class
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
@@ -28,7 +28,7 @@ spec:
   resources:
     requests:
       storage: 10Gi
-  storageClassName: fast-ssd  # Change to your storage class
+  storageClassName: standard  # Use gp2, fast-ssd, or your storage class
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
