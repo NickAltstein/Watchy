@@ -424,11 +424,12 @@ def main():
     
     # Footer
     st.markdown("---")
-    st.markdown("""
+    current_year = datetime.now().year
+    st.markdown(f"""
     <div style="text-align: center; color: #666; font-size: 0.9rem;">
         <p>WatchEdge by ThrivAI NYC | <a href="mailto:hello@watchedge.ai">Contact</a> | 
         <a href="https://calendly.com/watchedge">Schedule Demo</a></p>
-        <p>© 2026 ThrivAI. All rights reserved.</p>
+        <p>© {current_year} ThrivAI. All rights reserved.</p>
     </div>
     """, unsafe_allow_html=True)
 

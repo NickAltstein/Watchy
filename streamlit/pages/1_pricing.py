@@ -47,7 +47,9 @@ if ref_search and search_clicked:
     dates = pd.date_range(end=datetime.now(), periods=90, freq="D")
     
     # Create realistic price movement with trend
-    np.random.seed(hash(ref_clean) % 2**32)
+    # Use modulo to prevent overflow with hash
+    seed_value = abs(hash(ref_clean)) % (2**31)
+    np.random.seed(seed_value)
     trend = np.random.choice([-0.0005, 0, 0.0008])  # Slight trend
     volatility = 0.008
     
