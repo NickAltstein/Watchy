@@ -20,7 +20,7 @@ This project adheres to a code of conduct that all contributors are expected to 
 
 ### Prerequisites
 
-- Node.js 18+ and npm 9+
+- Node.js 20+ and npm 9+
 - Python 3.10+
 - Git
 - OpenAI API key with GPT-4o access
