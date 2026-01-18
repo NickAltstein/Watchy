@@ -3,7 +3,7 @@
 # ==========================================
 
 # Stage 1: Python API Builder
-FROM python:3.11-slim as python-builder
+FROM python:3.11-slim AS python-builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --user -r requirements.txt
 
 # Stage 2: Node.js Builder
-FROM node:18-slim as node-builder
+FROM node:20-slim AS node-builder
 
 WORKDIR /app
 
@@ -34,7 +34,7 @@ WORKDIR /app
 # Install Node.js in Python base image
 RUN apt-get update && apt-get install -y \
     curl \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
